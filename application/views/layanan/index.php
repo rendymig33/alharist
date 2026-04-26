@@ -1,0 +1,177 @@
+<style>
+    .service-shell {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .service-head-grid {
+        background: #111;
+        color: #fff;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        font-size: 13px;
+    }
+
+    .service-main-grid {
+        display: grid;
+        grid-template-columns: 1.4fr .6fr;
+    }
+
+    .service-table-wrap,
+    .service-list-wrap {
+        overflow-x: auto;
+    }
+
+    @media (max-width: 920px) {
+        .service-head-grid,
+        .service-main-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .service-head-grid > div {
+            border-right: none !important;
+            border-bottom: 1px solid #333;
+        }
+
+        .service-head-grid > div:last-child {
+            border-bottom: none;
+        }
+
+        .service-main-grid > div:first-child {
+            border-right: none !important;
+            border-bottom: 1px solid #e2e4ea;
+        }
+
+        #ppob-total {
+            font-size: 38px !important;
+            text-align: left !important;
+        }
+
+        #service-receipt {
+            max-width: 100% !important;
+        }
+    }
+</style>
+<div class="card service-shell">
+    <div class="service-head-grid">
+        <div style="padding:10px 14px; border-right:1px solid #333;">Pelanggan PPOB</div>
+        <div style="padding:10px 14px; border-right:1px solid #333;">Layanan Digital</div>
+        <div style="padding:10px 14px; border-right:1px solid #333;">Pembayaran</div>
+        <div style="padding:10px 14px; border-right:1px solid #333;">Tanggal: <?= date('d M Y') ?></div>
+        <div style="padding:10px 14px;">Kode: <?= htmlspecialchars((string) $nextCode) ?></div>
+    </div>
+    <div class="service-main-grid">
+        <div style="padding:16px; border-right:1px solid #e2e4ea;">
+            <form method="post" id="service-form">
+                <div class="form-grid">
+                    <div>
+                        <div class="small">Jenis Layanan</div>
+                        <select name="service_type" required>
+                            <option value="Top Up E-Wallet">Top Up E-Wallet</option>
+                            <option value="Pulsa">Pulsa</option>
+                            <option value="PPOB">PPOB</option>
+                            <option value="Tarik Tunai">Tarik Tunai</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="small">Pelanggan</div>
+                        <select name="customer_id">
+                            <option value="0">Pilih Pelanggan</option>
+                            <?php foreach ($customers as $customer): ?>
+                                <option value="<?= (int) $customer['id'] ?>"><?= htmlspecialchars($customer['name']) ?> - <?= htmlspecialchars((string) $customer['phone']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div><div class="small">Nomor Tujuan / ID</div><input name="target_number" placeholder="Nomor e-wallet, token, atau rekening" required></div>
+                    <div><div class="small">Nominal</div><input type="text" class="money-input" name="nominal" placeholder="Nominal layanan" required></div>
+                    <div><div class="small">Harga Beli</div><input type="text" class="money-input" name="buy_price" placeholder="Modal layanan" required></div>
+                    <div><div class="small">Harga Jual</div><input type="text" class="money-input" name="sell_price" placeholder="Harga ke pelanggan" required></div>
+                    <div><div class="small">Sumber Rekening Awal</div><select name="vault_id"><option value="0">Pilih Rekening Sumber</option><?php foreach ($vaults as $vault): ?><option value="<?= (int) $vault['id'] ?>"><?= htmlspecialchars($vault['bank_name']) ?></option><?php endforeach; ?></select></div>
+                    <div><div class="small">Pembayaran</div><select name="payment_type" required><option value="Tunai">Tunai</option><option value="QRIS">QRIS</option></select></div>
+                    <div><div class="small">No. Token / Kode Manual</div><input name="token_number" placeholder="Isi jika ada token atau kode manual"></div>
+                </div>
+            </form>
+        </div>
+        <div style="padding:16px; background:#fafafa;">
+            <div class="small">Layanan</div>
+            <div style="font-size:54px; font-weight:700; text-align:right; margin:12px 0 18px;" id="ppob-total">Rp 0</div>
+            <div class="grid">
+                <button type="button" class="btn-green" id="confirm-service">Simpan Layanan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top:18px;">
+    <h3>List Layanan</h3>
+    <div class="service-list-wrap">
+        <table>
+            <thead><tr><th>Kode</th><th>Jenis</th><th>Tujuan</th><th>Jual</th><th>Token</th><th>Profit</th><th>Aksi</th></tr></thead>
+            <tbody>
+            <?php foreach ($services as $service): ?>
+                <tr>
+                    <td><?= htmlspecialchars($service['code']) ?></td>
+                    <td><?= htmlspecialchars($service['service_type']) ?></td>
+                    <td><?= htmlspecialchars($service['target_number']) ?></td>
+                    <td><?= rupiah((float) $service['sell_price']) ?></td>
+                    <td><?= htmlspecialchars((string) ($service['token_number'] ?? '-')) ?></td>
+                    <td><?= rupiah((float) $service['profit']) ?></td>
+                    <td>
+                        <form method="post" onsubmit="return confirm('Hapus transaksi layanan ini?');">
+                            <input type="hidden" name="action" value="delete_service">
+                            <input type="hidden" name="service_id" value="<?= (int) $service['id'] ?>">
+                            <button class="btn-secondary" type="submit">Hapus</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<?php if (!empty($serviceReceipt)): ?>
+<div class="card" style="margin-top:18px;">
+    <h3>Struk Layanan</h3>
+    <div id="service-receipt" style="border:1px dashed #999; padding:16px; max-width:420px;">
+        <div style="font-weight:700; text-align:center;">STRUK LAYANAN</div>
+        <div>Kode: <?= htmlspecialchars($serviceReceipt['code']) ?></div>
+        <div>Jenis: <?= htmlspecialchars($serviceReceipt['service_type']) ?></div>
+        <div>Pelanggan: <?= htmlspecialchars((string) ($serviceReceipt['customer_name'] ?? '-')) ?></div>
+        <div>Tujuan: <?= htmlspecialchars($serviceReceipt['target_number']) ?></div>
+        <div>Nominal: <?= rupiah((float) $serviceReceipt['nominal']) ?></div>
+        <div>Bayar: <?= rupiah((float) $serviceReceipt['sell_price']) ?></div>
+        <div>Token: <?= htmlspecialchars((string) ($serviceReceipt['token_number'] ?? '-')) ?></div>
+        <div>Tanggal: <?= date('d-m-Y H:i') ?></div>
+    </div>
+    <div style="margin-top:12px;"><button type="button" class="btn" onclick="window.print()">Cetak Struk</button></div>
+</div>
+<?php endif; ?>
+<script>
+    (function () {
+        function formatNumber(value) {
+            const digits = String(value || '').replace(/[^\d]/g, '');
+            return digits === '' ? '' : Number(digits).toLocaleString('id-ID');
+        }
+
+        document.querySelectorAll('.money-input').forEach(function (input) {
+            input.addEventListener('input', function () {
+                this.value = formatNumber(this.value);
+                if (this.name === 'sell_price') {
+                    document.getElementById('ppob-total').textContent = 'Rp ' + (Number(this.value.replace(/[^\d]/g, '')) || 0).toLocaleString('id-ID');
+                }
+            });
+        });
+
+        const form = document.getElementById('service-form');
+        const btn = document.getElementById('confirm-service');
+        if (form && btn) {
+            btn.addEventListener('click', function () {
+                if (window.confirm('Simpan transaksi layanan ini? Mohon cek kembali nominal, harga jual, dan nomor tujuan.')) {
+                    form.submit();
+                }
+            });
+        }
+    }());
+</script>
