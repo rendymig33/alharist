@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/Database.php';
+
 class Model
 {
     protected PDO $db;
@@ -11,7 +13,6 @@ class Model
     {
         $this->basePath = $basePath;
         $this->config = $config;
-        $this->db = new PDO('sqlite:' . $this->basePath . '/storage/kasir.sqlite');
-        $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->db = Database::createPdo($this->basePath, $this->config);
     }
 }

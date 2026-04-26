@@ -4,4 +4,14 @@ return [
     'daily_capital' => 200000,
     'currency' => 'Rp',
     'default_timezone' => 'Asia/Jakarta',
+    'database' => [
+        'driver' => 'sqlite',
+        'sqlite_path' => __DIR__ . '/../../storage/kasir.sqlite',
+        'host' => '127.0.0.1',
+        'port' => 3306,
+        'name' => 'alharist',
+        'username' => 'root',
+        'password' => '',
+        'charset' => 'utf8mb4',
+    ],
 ];
