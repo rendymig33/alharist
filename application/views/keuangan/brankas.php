@@ -220,6 +220,7 @@
                 <div class="vault-card-head">
                     <div>
                         <div class="section-title" style="margin-bottom:6px;"><?= htmlspecialchars((string) $vault['bank_name']) ?></div>
+                        <strong style="font-size:18px;"><?= htmlspecialchars((string) ($vault['account_name'] ?: 'Tanpa keterangan')) ?></strong>
                     </div>
                     <div class="badge">#<?= (int) $vault['id'] ?></div>
                 </div>
