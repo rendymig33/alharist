@@ -186,6 +186,7 @@
         }
     }
 </style>
+<?php $vaults = $vaults ?? []; ?>
 <div class="toolbar">
     <div class="small">Daftar rekening / bank / dompet digital.</div>
     <button type="button" class="btn" onclick="toggleBrankasModal(true)">Add Brankas</button>
