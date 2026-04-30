@@ -126,9 +126,16 @@ class Transaksi_controller extends Controller
                 $paymentType = post('payment_type');
                 $cashPaid = unformat_number((string) post('cash_paid'));
                 $vaultId = 0;
+                $customerId = (int) post('customer_id', 0);
+                $dueDate = trim((string) post('due_date', ''));
 
                 if ($paymentType === 'Tunai' && $cashPaid < $subtotal) {
                     flash('Uang bayar kurang dari total belanja.', 'warning');
+                    $this->redirect('transaksi');
+                }
+
+                if ($paymentType === 'Hutang' && $customerId <= 0) {
+                    flash('Pilih pelanggan untuk transaksi hutang.', 'warning');
                     $this->redirect('transaksi');
                 }
 
@@ -150,15 +157,15 @@ class Transaksi_controller extends Controller
                 }
 
                 $transaksiModel->createSale([
-                    'invoice_no' => 'INV-' . date('YmdHis'),
-                    'customer_id' => 0,
+                    'invoice_no' => $transaksiModel->nextInvoiceNo(),
+                    'customer_id' => $paymentType === 'Hutang' ? $customerId : 0,
                     'payment_type' => $paymentType,
                     'vault_id' => $vaultId,
                     'subtotal' => $subtotal,
                     'total_profit' => $totalProfit,
                     'total_paid' => $paymentType === 'Hutang' ? 0 : ($paymentType === 'Tunai' ? $cashPaid : $subtotal),
                     'notes' => '',
-                    'due_date' => null,
+                    'due_date' => $paymentType === 'Hutang' && $dueDate !== '' ? $dueDate : null,
                     'items' => $_SESSION['cart'],
                 ]);
 
@@ -189,7 +196,27 @@ class Transaksi_controller extends Controller
             'customers' => $pelangganModel->all(),
             'vaults' => $keuanganModel->allVaults(),
             'cart' => $_SESSION['cart'],
+            'nextInvoiceNo' => $transaksiModel->nextInvoiceNo(),
             'latestSales' => $transaksiModel->latestSales(),
+            'flash' => flash(),
+        ]);
+    }
+
+    public function list(): void
+    {
+        $transaksiModel = $this->model('Transaksi_model');
+        $keyword = trim((string) ($_GET['q'] ?? ''));
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'delete_sale') {
+            $deleted = $transaksiModel->deleteSale((int) post('sale_id'));
+            flash($deleted ? 'Transaksi berhasil dihapus.' : 'Transaksi tidak ditemukan.', $deleted ? 'success' : 'warning');
+            $this->redirect('transaksi/list');
+        }
+
+        $this->view('transaksi/list', [
+            'title' => 'List Transaksi',
+            'sales' => $transaksiModel->salesList($keyword),
+            'keyword' => $keyword,
             'flash' => flash(),
         ]);
     }

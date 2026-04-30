@@ -9,7 +9,7 @@
 
     .debt-pay-form {
         display: grid;
-        grid-template-columns: 1fr 1fr auto;
+        grid-template-columns: 140px 1fr 1fr 1fr auto;
         gap: 8px;
     }
 
@@ -58,9 +58,20 @@
 </style>
 <div class="card">
     <h3>Daftar Utang Pelanggan</h3>
+    <form method="get" style="display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:end; margin:16px 0;">
+        <input type="hidden" name="route" value="keuangan/hutang">
+        <div>
+            <div class="small">Cari Utang</div>
+            <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari invoice, pelanggan, atau status">
+        </div>
+        <div class="search-reset-actions">
+            <button type="submit" class="btn btn-secondary">Search</button>
+            <a href="index.php?route=keuangan/hutang" class="btn btn-info">Reset</a>
+        </div>
+    </form>
     <div class="debt-table-wrap">
         <table class="debt-table">
-            <thead><tr><th>Invoice</th><th>Pelanggan</th><th>Total</th><th>Terbayar</th><th>Status</th><th>Bayar</th></tr></thead>
+            <thead><tr><th>Invoice</th><th>Pelanggan</th><th>Total</th><th>Terbayar</th><th>Sisa</th><th>Status</th><th>Bayar</th></tr></thead>
             <tbody>
             <?php foreach ($debts as $debt): ?>
                 <tr>
@@ -68,11 +79,27 @@
                     <td data-label="Pelanggan"><?= htmlspecialchars((string) $debt['customer_name']) ?></td>
                     <td data-label="Total"><?= rupiah((float) $debt['total_debt']) ?></td>
                     <td data-label="Terbayar"><?= rupiah((float) $debt['paid_amount']) ?></td>
+                    <td data-label="Sisa">
+                        <?= rupiah((float) ($debt['remaining_debt'] ?? 0)) ?>
+                        <?php if (!empty($debt['due_date'])): ?>
+                            <div class="small">Jatuh tempo: <?= htmlspecialchars((string) $debt['due_date']) ?></div>
+                        <?php endif; ?>
+                    </td>
                     <td data-label="Status"><?= htmlspecialchars($debt['status']) ?></td>
                     <td data-label="Bayar">
-                        <form method="post" class="debt-pay-form">
+                        <form method="post" class="debt-pay-form" data-remaining="<?= htmlspecialchars((string) (float) ($debt['remaining_debt'] ?? 0)) ?>">
                             <input type="hidden" name="debt_id" value="<?= (int) $debt['id'] ?>">
-                            <input type="number" name="amount" placeholder="Nominal" required>
+                            <select name="payment_mode" class="debt-payment-mode">
+                                <option value="partial">Cicilan</option>
+                                <option value="full">Lunas</option>
+                            </select>
+                            <select name="vault_id" required>
+                                <option value="0">Pilih Brankas</option>
+                                <?php foreach (($vaults ?? []) as $vault): ?>
+                                    <option value="<?= (int) $vault['id'] ?>"><?= htmlspecialchars((string) ($vault['bank_name'] . (!empty($vault['account_name']) ? ' - ' . $vault['account_name'] : ''))) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <input type="text" name="amount" class="debt-payment-amount" placeholder="Nominal bayar" required>
                             <input name="notes" placeholder="Catatan">
                             <button class="btn-green" type="submit">Simpan</button>
                         </form>
@@ -83,3 +110,46 @@
         </table>
     </div>
 </div>
+<script>
+    (function () {
+        function formatInputNumber(value) {
+            const digits = String(value || '').replace(/[^\d]/g, '');
+            return digits === '' ? '' : Number(digits).toLocaleString('id-ID');
+        }
+
+        document.querySelectorAll('.debt-payment-amount').forEach(function (input) {
+            input.addEventListener('input', function () {
+                this.value = formatInputNumber(this.value);
+            });
+        });
+
+        document.querySelectorAll('.debt-pay-form').forEach(function (form) {
+            const mode = form.querySelector('.debt-payment-mode');
+            const amount = form.querySelector('.debt-payment-amount');
+            const remaining = parseFloat(form.dataset.remaining || '0');
+
+            function syncPaymentMode() {
+                if (!mode || !amount) {
+                    return;
+                }
+
+                if (mode.value === 'full') {
+                    amount.value = formatInputNumber(remaining);
+                    amount.readOnly = true;
+                    amount.style.background = '#f5f7fa';
+                } else {
+                    amount.readOnly = false;
+                    amount.style.background = '#fff';
+                    if (amount.value === formatInputNumber(remaining)) {
+                        amount.value = '';
+                    }
+                }
+            }
+
+            if (mode) {
+                mode.addEventListener('change', syncPaymentMode);
+                syncPaymentMode();
+            }
+        });
+    }());
+</script>

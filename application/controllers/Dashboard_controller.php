@@ -14,15 +14,9 @@ class Dashboard_controller extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'delete_sale') {
             $deleted = $transactionModel->deleteSale((int) post('sale_id'));
             flash($deleted ? 'Transaksi berhasil dihapus.' : 'Transaksi tidak ditemukan.', $deleted ? 'success' : 'warning');
-
             $query = ['route' => 'dashboard'];
-            if ($dateFrom !== '') {
-                $query['date_from'] = $dateFrom;
-            }
-            if ($dateTo !== '') {
-                $query['date_to'] = $dateTo;
-            }
-
+            if ($dateFrom !== '') $query['date_from'] = $dateFrom;
+            if ($dateTo !== '') $query['date_to'] = $dateTo;
             header('Location: index.php?' . http_build_query($query));
             exit;
         }
@@ -31,7 +25,7 @@ class Dashboard_controller extends Controller
 
         $this->view('dashboard/index', [
             'title' => 'Dashboard',
-            'summary' => $dashboardModel->summaryToday(),
+            'summary' => $dashboardModel->summary($dateFrom ?: null, $dateTo ?: null, null),
             'latestSales' => $transactionModel->salesSummaryByDate($dateFrom ?: null, $dateTo ?: null, 20),
             'filterDateFrom' => $dateFrom,
             'filterDateTo' => $dateTo,

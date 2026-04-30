@@ -20,6 +20,26 @@ class Pelanggan_model extends Model
         return $this->db->query("SELECT * FROM customers ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function search(string $keyword = ''): array
+    {
+        $keyword = trim($keyword);
+        if ($keyword === '') {
+            return $this->all();
+        }
+
+        $statement = $this->db->prepare("
+            SELECT *
+            FROM customers
+            WHERE code LIKE :keyword
+               OR name LIKE :keyword
+               OR phone LIKE :keyword
+               OR address LIKE :keyword
+            ORDER BY id DESC
+        ");
+        $statement->execute(['keyword' => '%' . $keyword . '%']);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function save(array $data): void
     {
         if (empty($data['code'])) {
@@ -55,6 +75,12 @@ class Pelanggan_model extends Model
 
         $statement = $this->db->prepare($sql);
         $statement->execute($params);
+    }
+
+    public function delete(int $id): bool
+    {
+        $statement = $this->db->prepare("DELETE FROM customers WHERE id = :id");
+        return $statement->execute(['id' => $id]);
     }
 
     public function findByCode(string $code): array|false

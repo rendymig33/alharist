@@ -79,25 +79,24 @@ class Barang_model extends Model
 
         $existingItem = !empty($data['id']) ? $this->findRaw((int) $data['id']) : false;
         $data['small_unit_qty'] = max(1, (int) ($data['small_unit_qty'] ?? 1));
-        $incomingStock = max(0, (int) ($data['stock'] ?? 0));
         $currentStock = max(0, (int) ($existingItem['stock'] ?? 0));
-        $data['stock'] = ($data['stock_mode'] ?? 'add') === 'adjust' ? $incomingStock : ($currentStock + $incomingStock);
+        $data['stock'] = $existingItem ? $currentStock : max(0, (int) ($data['stock'] ?? 0));
         $incomingPurchaseTotal = max(0, (float) ($data['purchase_total'] ?? 0));
         $incomingBasisQty = max(0, (int) ($data['purchase_basis_qty'] ?? 0));
         $existingPurchaseTotal = max(0, (float) ($existingItem['purchase_total'] ?? 0));
         $existingBasisQty = max(0, (int) ($existingItem['purchase_basis_qty'] ?? 0));
-        $stockMode = (string) ($data['stock_mode'] ?? 'add');
+        $updatePurchase = (string) ($data['update_purchase'] ?? '0');
         $isNewItem = empty($existingItem);
 
         if ($isNewItem) {
             $data['purchase_total'] = $incomingPurchaseTotal;
             $data['purchase_basis_qty'] = $incomingBasisQty;
-        } elseif ($stockMode === 'adjust') {
+        } elseif ($updatePurchase === '1') {
+            $data['purchase_total'] = $incomingPurchaseTotal;
+            $data['purchase_basis_qty'] = $incomingBasisQty;
+        } elseif ($incomingPurchaseTotal > 0 && $incomingBasisQty > 0) {
             $data['purchase_total'] = $existingPurchaseTotal;
             $data['purchase_basis_qty'] = $existingBasisQty;
-        } elseif ($incomingPurchaseTotal > 0 && $incomingBasisQty > 0) {
-            $data['purchase_total'] = $existingPurchaseTotal + $incomingPurchaseTotal;
-            $data['purchase_basis_qty'] = $existingBasisQty + $incomingBasisQty;
         } else {
             $data['purchase_total'] = $existingPurchaseTotal;
             $data['purchase_basis_qty'] = $existingBasisQty;
@@ -114,10 +113,16 @@ class Barang_model extends Model
         $data['promo_price_2'] = max(0, (float) ($data['promo_price_2'] ?? 0));
         $data['promo_qty_3'] = max(0, (int) ($data['promo_qty_3'] ?? 0));
         $data['promo_price_3'] = max(0, (float) ($data['promo_price_3'] ?? 0));
+        $data['promo_qty_4'] = max(0, (int) ($data['promo_qty_4'] ?? 0));
+        $data['promo_price_4'] = max(0, (float) ($data['promo_price_4'] ?? 0));
+        $data['promo_qty_5'] = max(0, (int) ($data['promo_qty_5'] ?? 0));
+        $data['promo_price_5'] = max(0, (float) ($data['promo_price_5'] ?? 0));
+        $data['promo_qty_6'] = max(0, (int) ($data['promo_qty_6'] ?? 0));
+        $data['promo_price_6'] = max(0, (float) ($data['promo_price_6'] ?? 0));
         $data['description'] = (string) ($data['description'] ?? '');
 
         if (!empty($data['id'])) {
-            $sql = "UPDATE items SET code=:code, barcode=:barcode, name=:name, category=:category, description=:description, unit_large=:unit_large, unit_small=:unit_small, small_unit_qty=:small_unit_qty, purchase_price=:purchase_price, purchase_total=:purchase_total, purchase_basis_qty=:purchase_basis_qty, selling_price=:selling_price, profit_percent=:profit_percent, unit_price=:unit_price, half_price=:half_price, allow_small_sale=:allow_small_sale, allow_half_sale=:allow_half_sale, promo_qty_1=:promo_qty_1, promo_price_1=:promo_price_1, promo_qty_2=:promo_qty_2, promo_price_2=:promo_price_2, promo_qty_3=:promo_qty_3, promo_price_3=:promo_price_3, stock=:stock, exp_date=:exp_date WHERE id=:id";
+            $sql = "UPDATE items SET code=:code, barcode=:barcode, name=:name, category=:category, description=:description, unit_large=:unit_large, unit_small=:unit_small, small_unit_qty=:small_unit_qty, purchase_price=:purchase_price, purchase_total=:purchase_total, purchase_basis_qty=:purchase_basis_qty, selling_price=:selling_price, profit_percent=:profit_percent, unit_price=:unit_price, half_price=:half_price, allow_small_sale=:allow_small_sale, allow_half_sale=:allow_half_sale, promo_qty_1=:promo_qty_1, promo_price_1=:promo_price_1, promo_qty_2=:promo_qty_2, promo_price_2=:promo_price_2, promo_qty_3=:promo_qty_3, promo_price_3=:promo_price_3, promo_qty_4=:promo_qty_4, promo_price_4=:promo_price_4, promo_qty_5=:promo_qty_5, promo_price_5=:promo_price_5, promo_qty_6=:promo_qty_6, promo_price_6=:promo_price_6, stock=:stock, exp_date=:exp_date WHERE id=:id";
             $params = [
                 'id' => $data['id'],
                 'code' => $data['code'],
@@ -143,11 +148,17 @@ class Barang_model extends Model
                 'promo_price_2' => $data['promo_price_2'],
                 'promo_qty_3' => $data['promo_qty_3'],
                 'promo_price_3' => $data['promo_price_3'],
+                'promo_qty_4' => $data['promo_qty_4'],
+                'promo_price_4' => $data['promo_price_4'],
+                'promo_qty_5' => $data['promo_qty_5'],
+                'promo_price_5' => $data['promo_price_5'],
+                'promo_qty_6' => $data['promo_qty_6'],
+                'promo_price_6' => $data['promo_price_6'],
                 'stock' => $data['stock'],
                 'exp_date' => $data['exp_date'],
             ];
         } else {
-            $sql = "INSERT INTO items (code, barcode, name, category, description, unit_large, unit_small, small_unit_qty, purchase_price, purchase_total, purchase_basis_qty, selling_price, profit_percent, unit_price, half_price, allow_small_sale, allow_half_sale, promo_qty_1, promo_price_1, promo_qty_2, promo_price_2, promo_qty_3, promo_price_3, stock, exp_date, created_at) VALUES (:code, :barcode, :name, :category, :description, :unit_large, :unit_small, :small_unit_qty, :purchase_price, :purchase_total, :purchase_basis_qty, :selling_price, :profit_percent, :unit_price, :half_price, :allow_small_sale, :allow_half_sale, :promo_qty_1, :promo_price_1, :promo_qty_2, :promo_price_2, :promo_qty_3, :promo_price_3, :stock, :exp_date, :created_at)";
+            $sql = "INSERT INTO items (code, barcode, name, category, description, unit_large, unit_small, small_unit_qty, purchase_price, purchase_total, purchase_basis_qty, selling_price, profit_percent, unit_price, half_price, allow_small_sale, allow_half_sale, promo_qty_1, promo_price_1, promo_qty_2, promo_price_2, promo_qty_3, promo_price_3, promo_qty_4, promo_price_4, promo_qty_5, promo_price_5, promo_qty_6, promo_price_6, stock, exp_date, created_at) VALUES (:code, :barcode, :name, :category, :description, :unit_large, :unit_small, :small_unit_qty, :purchase_price, :purchase_total, :purchase_basis_qty, :selling_price, :profit_percent, :unit_price, :half_price, :allow_small_sale, :allow_half_sale, :promo_qty_1, :promo_price_1, :promo_qty_2, :promo_price_2, :promo_qty_3, :promo_price_3, :promo_qty_4, :promo_price_4, :promo_qty_5, :promo_price_5, :promo_qty_6, :promo_price_6, :stock, :exp_date, :created_at)";
             $params = [
                 'code' => $data['code'],
                 'barcode' => $data['barcode'],
@@ -172,6 +183,12 @@ class Barang_model extends Model
                 'promo_price_2' => $data['promo_price_2'],
                 'promo_qty_3' => $data['promo_qty_3'],
                 'promo_price_3' => $data['promo_price_3'],
+                'promo_qty_4' => $data['promo_qty_4'],
+                'promo_price_4' => $data['promo_price_4'],
+                'promo_qty_5' => $data['promo_qty_5'],
+                'promo_price_5' => $data['promo_price_5'],
+                'promo_qty_6' => $data['promo_qty_6'],
+                'promo_price_6' => $data['promo_price_6'],
                 'stock' => $data['stock'],
                 'exp_date' => $data['exp_date'],
                 'created_at' => date('Y-m-d H:i:s'),
@@ -266,6 +283,12 @@ class Barang_model extends Model
                 'promo_price_2' => (float) ($row[15] ?? 0),
                 'promo_qty_3' => (int) ($row[16] ?? 0),
                 'promo_price_3' => (float) ($row[17] ?? 0),
+                'promo_qty_4' => 0,
+                'promo_price_4' => 0,
+                'promo_qty_5' => 0,
+                'promo_price_5' => 0,
+                'promo_qty_6' => 0,
+                'promo_price_6' => 0,
                 'stock' => (int) ($row[18] ?? 0),
                 'exp_date' => $row[19] ?? null,
             ]);
@@ -334,14 +357,23 @@ class Barang_model extends Model
         $purchaseParts = split_stock_units($purchaseBasisQty, $smallUnitQty);
         $item['purchase_basis_large'] = $purchaseParts['large'];
         $item['purchase_basis_small'] = $purchaseParts['small'];
-        $item['cost_per_small'] = $purchasePrice > 0
-            ? $purchasePrice
-            : ($purchaseBasisQty > 0 ? $purchaseTotal / $purchaseBasisQty : 0.0);
-        $item['cost_per_large'] = $smallUnitQty > 0 ? $item['cost_per_small'] * $smallUnitQty : 0.0;
+        $purchaseBasisLarge = max(1, (int) ($item['purchase_basis_large'] ?? 0));
+        $allowSmallSale = !empty($item['allow_small_sale']);
+
+        $item['cost_per_small'] = $smallUnitQty > 0 ? ($purchasePrice / $smallUnitQty) : 0.0;
+        $item['cost_per_large'] = $purchasePrice;
+
         $item['profit_per_small'] = (float) ($item['unit_price'] ?? 0) - $item['cost_per_small'];
         $item['profit_per_large'] = (float) ($item['selling_price'] ?? 0) - $item['cost_per_large'];
-        $item['profit_per_small_rounded'] = $this->roundedUnitPrice($item['profit_per_small']);
-        $item['profit_per_large_rounded'] = $this->roundedPrice($item['profit_per_large']);
+        $item['profit_per_small_rounded'] = (int) round($item['profit_per_small']);
+        $item['profit_per_large_rounded'] = (int) round($item['profit_per_large']);
+        $useSmallProfit = $allowSmallSale;
+        $item['active_profit_value'] = $useSmallProfit
+            ? ($item['profit_per_small_rounded'] ?? $item['profit_per_small'])
+            : ($item['profit_per_large_rounded'] ?? $item['profit_per_large']);
+        $item['active_profit_unit'] = $useSmallProfit
+            ? (string) ($item['unit_small'] ?? 'Batang')
+            : (string) ($item['unit_large'] ?? 'Bungkus');
 
         $item['stock_large'] = $stockParts['large'];
         $item['stock_small'] = $stockParts['small'];

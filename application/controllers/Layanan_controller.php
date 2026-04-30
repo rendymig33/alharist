@@ -8,6 +8,7 @@ class Layanan_controller extends Controller
         $model = $this->model('Layanan_model');
         $keuanganModel = $this->model('Keuangan_model');
         $pelangganModel = $this->model('Pelanggan_model');
+        $keyword = trim((string) ($_GET['q'] ?? ''));
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (post('action') === 'delete_service') {
@@ -75,10 +76,11 @@ class Layanan_controller extends Controller
         $this->view('layanan/index', [
             'title' => 'Top Up & PPOB',
             'nextCode' => $model->nextCode(),
-            'services' => $model->all(),
+            'services' => $model->all($keyword),
             'vaults' => $keuanganModel->allVaults(),
             'customers' => $pelangganModel->all(),
             'serviceReceipt' => $_SESSION['service_receipt'] ?? null,
+            'keyword' => $keyword,
             'flash' => flash(),
         ]);
         unset($_SESSION['service_receipt']);

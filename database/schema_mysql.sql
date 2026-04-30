@@ -23,6 +23,12 @@ CREATE TABLE IF NOT EXISTS items (
     promo_price_2 DECIMAL(15,2) NOT NULL DEFAULT 0,
     promo_qty_3 INT NOT NULL DEFAULT 0,
     promo_price_3 DECIMAL(15,2) NOT NULL DEFAULT 0,
+    promo_qty_4 INT NOT NULL DEFAULT 0,
+    promo_price_4 DECIMAL(15,2) NOT NULL DEFAULT 0,
+    promo_qty_5 INT NOT NULL DEFAULT 0,
+    promo_price_5 DECIMAL(15,2) NOT NULL DEFAULT 0,
+    promo_qty_6 INT NOT NULL DEFAULT 0,
+    promo_price_6 DECIMAL(15,2) NOT NULL DEFAULT 0,
     stock INT NOT NULL DEFAULT 0,
     exp_date DATE NULL,
     created_at DATETIME NOT NULL,
@@ -112,6 +118,7 @@ CREATE TABLE IF NOT EXISTS debts (
 CREATE TABLE IF NOT EXISTS debt_payments (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     debt_id BIGINT UNSIGNED NOT NULL,
+    vault_id BIGINT UNSIGNED NULL,
     amount DECIMAL(15,2) NOT NULL,
     payment_date DATE NOT NULL,
     notes TEXT NULL,
@@ -138,4 +145,32 @@ CREATE TABLE IF NOT EXISTS service_transactions (
     created_at DATETIME NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_service_transactions_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS item_receives (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    item_id BIGINT UNSIGNED NOT NULL,
+    qty_large INT NOT NULL DEFAULT 0,
+    qty_small INT NOT NULL DEFAULT 0,
+    qty_total INT NOT NULL DEFAULT 0,
+    purchase_price DECIMAL(15,2) NOT NULL DEFAULT 0,
+    purchase_total DECIMAL(15,2) NOT NULL DEFAULT 0,
+    notes TEXT NULL,
+    transaction_date DATE NOT NULL,
+    created_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_item_receives_item_id (item_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_opnames (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    item_id BIGINT UNSIGNED NOT NULL,
+    before_stock INT NOT NULL DEFAULT 0,
+    actual_stock INT NOT NULL DEFAULT 0,
+    adjustment INT NOT NULL DEFAULT 0,
+    notes TEXT NULL,
+    transaction_date DATE NOT NULL,
+    created_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_stock_opnames_item_id (item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

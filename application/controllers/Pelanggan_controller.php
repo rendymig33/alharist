@@ -7,8 +7,15 @@ class Pelanggan_controller extends Controller
     {
         $model = $this->model('Pelanggan_model');
         $editCustomer = null;
+        $keyword = trim((string) ($_GET['q'] ?? ''));
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (post('action') === 'delete') {
+                $deleted = $model->delete((int) post('id'));
+                flash($deleted ? 'Pelanggan berhasil dihapus.' : 'Pelanggan gagal dihapus.', $deleted ? 'success' : 'warning');
+                $this->redirect('pelanggan');
+            }
+
             $model->save([
                 'id' => post('id'),
                 'code' => post('code'),
@@ -33,9 +40,10 @@ class Pelanggan_controller extends Controller
 
         $this->view('pelanggan/index', [
             'title' => 'Master Data Pelanggan',
-            'customers' => $model->all(),
+            'customers' => $model->search($keyword),
             'editCustomer' => $editCustomer,
             'nextCode' => !empty($editCustomer['code']) ? $editCustomer['code'] : $model->nextCode(),
+            'keyword' => $keyword,
             'flash' => flash(),
         ]);
     }

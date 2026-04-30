@@ -52,6 +52,16 @@
         border: 1px solid #f3d68a;
     }
 
+    .detail-box.highlight-price {
+        background: linear-gradient(135deg, #eff8ff, #f8fbff);
+        border-color: #b2ddff;
+    }
+
+    .detail-box.highlight-profit {
+        background: linear-gradient(135deg, #ecfdf3, #f6fff9);
+        border-color: #a6f4c5;
+    }
+
     .barang-option {
         background: #fcfcfd;
         border: 1px solid var(--line);
@@ -73,6 +83,7 @@
 
     .promo-stack {
         display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
     }
 
@@ -138,6 +149,10 @@
         }
 
         .barang-two-col {
+            grid-template-columns: 1fr;
+        }
+
+        .promo-stack {
             grid-template-columns: 1fr;
         }
 
@@ -258,7 +273,7 @@
 <div class="toolbar">
     <div>
         <div class="section-title">Master Barang</div>
-        <div class="small">Form lebih sederhana untuk stok masuk, aturan jual, harga, promo, dan keuntungan.</div>
+        <div class="small">Master barang fokus untuk nama, barcode, konversi satuan, harga, promo, dan aturan jual.</div>
     </div>
     <button type="button" class="btn" onclick="toggleBarangModal(true)">Add Barang</button>
 </div>
@@ -276,7 +291,7 @@
         <input type="hidden" name="route" value="barang">
         <div>
             <div class="small">Cari Barang</div>
-            <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari kode, nama, atau kategori">
+            <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari kode, barcode, nama, atau kategori">
         </div>
         <div class="barang-search-actions">
             <button type="submit" class="btn btn-secondary search-btn">Search</button>
@@ -301,6 +316,7 @@
                     <tr>
                         <td data-label="Kode">
                             <strong><?= htmlspecialchars($item['code']) ?></strong>
+                            <div class="small"><?= htmlspecialchars((string) (($item['barcode'] ?? '') !== '' ? $item['barcode'] : '-')) ?></div>
                             <div class="small"><?= htmlspecialchars((string) ($item['category'] ?: '-')) ?></div>
                         </td>
                         <td data-label="Barang">
@@ -313,13 +329,13 @@
                             <div class="small">Eceran: <?= !empty($item['allow_small_sale']) ? rupiah((float) $item['unit_price']) : 'Tidak dijual' ?></div>
                         </td>
                         <td data-label="Untung">
-                            <strong><?= rupiah((float) ($item['profit_per_small_rounded'] ?? $item['profit_per_small'] ?? 0)) ?></strong>
-                            <div class="small">per <?= htmlspecialchars((string) ($item['unit_small'] ?? 'Batang')) ?></div>
+                            <strong><?= rupiah((float) ($item['active_profit_value'] ?? 0)) ?></strong>
+                            <div class="small">per <?= htmlspecialchars((string) ($item['active_profit_unit'] ?? 'Batang')) ?></div>
                         </td>
                         <td data-label="Aksi">
                             <div class="action-row">
-                                <a class="btn btn-info" href="index.php?route=barang&view=<?= (int) $item['id'] ?>">View</a>
-                                <a class="btn btn-secondary" href="index.php?route=barang&edit=<?= (int) $item['id'] ?>">Edit</a>
+                                <a class="btn btn-info" href="index.php?route=barang<?= !empty($keyword) ? '&q=' . urlencode((string) $keyword) : '' ?>&view=<?= (int) $item['id'] ?>">View</a>
+                                <a class="btn btn-secondary" href="index.php?route=barang<?= !empty($keyword) ? '&q=' . urlencode((string) $keyword) : '' ?>&edit=<?= (int) $item['id'] ?>">Edit</a>
                                 <form method="post" onsubmit="return confirm('Hapus barang ini?');" style="margin:0;">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
@@ -348,7 +364,7 @@
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" value="<?= htmlspecialchars((string) ($editItem['id'] ?? '')) ?>">
             <input type="hidden" name="code" value="<?= htmlspecialchars((string) $nextCode) ?>">
-            <input type="hidden" name="stock_mode" id="stock_mode" value="add">
+            <input type="hidden" name="update_purchase" id="update_purchase" value="<?= empty($editItem) ? '1' : '0' ?>">
 
             <div class="barang-hero">
                 <div class="form-grid">
@@ -373,14 +389,7 @@
 
             <div class="barang-two-col">
                 <div class="barang-section">
-                    <div class="section-title">Satuan Dan Stok</div>
-                    <?php if (!empty($editItem)): ?>
-                        <div class="action-row" style="margin-bottom:12px;">
-                            <button type="button" class="btn btn-secondary" id="stock-add-btn" style="width:auto;">Mode Tambah Stok</button>
-                            <button type="button" class="btn btn-info" id="stock-adjust-btn" style="width:auto;">Koreksi Stok</button>
-                        </div>
-                        <div class="small" id="stock-mode-note" style="margin-bottom:12px;">Mode tambah stok aktif. Nilai yang diisi akan ditambahkan ke Stok Gudang.</div>
-                    <?php endif; ?>
+                    <div class="section-title">Satuan Dan Ringkasan Stok</div>
                     <div class="form-grid">
                         <div>
                             <div class="small">Satuan Besar</div><input id="unit_large" name="unit_large" value="<?= htmlspecialchars((string) ($editItem['unit_large'] ?? 'Bungkus')) ?>" required>
@@ -395,33 +404,35 @@
                             <div class="small">Stock</div><input id="stock_display_readonly" value="<?= htmlspecialchars((string) ($editItem['stock_display'] ?? '0')) ?>" readonly>
                         </div>
                         <div>
-                            <div class="small">Qty Kecil</div><input id="stock_total" type="number" min="0" value="<?= htmlspecialchars((string) ($editItem['stock'] ?? '0')) ?>" readonly style="background:#f8fafc;">
-                        </div>
-                        <div>
-                            <div class="small">Qty Besar</div><input id="stock_large" name="stock_large" type="number" min="0" value="0">
-                        </div>
-                        <div style="grid-column:1 / -1;">
-                            <div class="small">Qty Sisa</div><input id="stock_small" name="stock_small" type="number" min="0" value="0">
+                            <div class="small">Total Stok Kecil</div><input id="stock_total" type="number" min="0" value="<?= htmlspecialchars((string) ($editItem['stock'] ?? '0')) ?>" readonly style="background:#f8fafc;">
                         </div>
                     </div>
                     <div class="info-strip" style="margin-top:14px;">
-                        <div id="stock-preview" style="font-weight:700;">Stock: 0 Bungkus 0 Batang</div>
-                        <div class="small" id="stock-total-note" style="margin-top:6px;">Qty kecil otomatis dari qty besar x qty satuan/item + qty sisa.</div>
+                        <div id="stock-preview" style="font-weight:700;">Stok aktif: <?= htmlspecialchars((string) ($editItem['stock_display'] ?? '0')) ?></div>
+                        <div class="small" id="stock-total-note" style="margin-top:6px;">Perubahan stok dilakukan dari modul Receive Item dan Stok Opname.</div>
                     </div>
                 </div>
 
                 <div class="barang-section">
                     <div class="section-title">Harga</div>
+                    <?php if (!empty($editItem)): ?>
+                        <div class="barang-option" style="margin-bottom:14px;">
+                            <label style="display:flex; align-items:center; gap:10px;">
+                                <input type="checkbox" id="update_purchase_toggle" value="1" style="width:auto;">
+                                <span>Buka mode pembelian baru untuk mengganti Harga Beli di Struk</span>
+                            </label>
+                        </div>
+                    <?php endif; ?>
                     <div class="form-grid">
                         <div>
                             <div class="small">Harga Beli di Struk</div>
-                            <input class="money-input" id="purchase_receipt_total" name="purchase_receipt_total" type="text" value="<?= htmlspecialchars(number_format((float) ($editItem['purchase_total'] ?? 0), 0, ',', '.')) ?>">
+                            <input class="money-input" id="purchase_receipt_total" name="purchase_receipt_total" type="text" value="<?= htmlspecialchars(number_format((float) ($editItem['purchase_price'] ?? 0), 0, ',', '.')) ?>" <?= !empty($editItem) ? 'readonly' : '' ?>>
                         </div>
                         <div>
-                            <div class="small">Qty Yang Dibeli</div><input id="purchase_large_qty" name="purchase_large_qty" type="number" min="0" value="0">
+                            <div class="small">Qty Yang Dibeli</div><input id="purchase_large_qty" name="purchase_large_qty" type="number" min="0" value="<?= htmlspecialchars((string) ($editItem['purchase_basis_large'] ?? '0')) ?>" <?= !empty($editItem) ? 'readonly' : '' ?>>
                         </div>
                         <div>
-                            <div class="small">Total Harga Beli</div><input id="purchase_total_display" type="text" value="0" readonly style="background:#f8fafc;">
+                            <div class="small">Total Harga Beli</div><input id="purchase_total_display" type="text" value="<?= htmlspecialchars(number_format((float) ($editItem['purchase_total'] ?? 0), 0, ',', '.')) ?>" readonly style="background:#f8fafc;">
                         </div>
                         <div>
                             <div class="small">Harga per pcs</div><input id="purchase_price" name="purchase_price" type="text" value="<?= htmlspecialchars(number_format((float) ($editItem['purchase_price'] ?? 0), 0, ',', '.')) ?>" readonly style="background:#f8fafc;">
@@ -439,7 +450,7 @@
                     </div>
                     <input type="hidden" id="half_price" name="half_price" value="<?= htmlspecialchars(number_format((float) ($editItem['half_price'] ?? 0), 0, ',', '.')) ?>">
                     <div class="info-strip barang-preview" style="margin-top:14px;">
-                        <div id="purchase-preview" style="font-weight:700;">Total Harga Beli: Rp 0 x 0 = Rp 0</div>
+                        <div id="purchase-preview" style="font-weight:700;">Harga per pcs: Rp 0 / 0 = Rp 0</div>
                         <div id="price-preview" style="font-weight:700; margin-top:6px;">Harga Modal Ecer: Rp 0 / 0 = Rp 0</div>
                         <div class="small" id="profit-note" style="margin-top:6px;">Profit (satuan Besar): Rp 0 - Rp 0 = Rp 0</div>
                         <div class="small" id="profit-small-note" style="margin-top:6px;">Profit (satuan Kecil): Rp 0 - Rp 0 = Rp 0</div>
@@ -449,10 +460,10 @@
 
             <div class="barang-two-col">
                 <div class="barang-section promo-panel">
-                    <div class="section-title">Promo Satuan Kecil</div>
-                    <div class="small" style="margin-bottom:10px;">Maksimal 3 promo untuk penjualan eceran.</div>
+                    <div class="section-title">Promo</div>
+                    <div class="small" style="margin-bottom:10px;">Sediakan sampai 6 promo untuk penjualan eceran.</div>
                     <div class="promo-stack">
-                        <?php for ($i = 1; $i <= 3; $i++): ?>
+                        <?php for ($i = 1; $i <= 6; $i++): ?>
                             <div class="detail-box">
                                 <div class="form-grid">
                                     <div>
@@ -468,14 +479,9 @@
                     </div>
                 </div>
                 <div class="barang-section">
-                    <div class="section-title">Ringkasan Promo</div>
+                    <div class="section-title">Promo</div>
                     <div class="detail-box">
-                        <div class="small">Promo aktif akan dipakai otomatis saat penjualan eceran sesuai qty yang cocok.</div>
-                    </div>
-                    <div class="detail-box" style="margin-top:12px;">
-                        <div id="promo-summary-1" class="small">Promo 1: belum aktif.</div>
-                        <div id="promo-summary-2" class="small" style="margin-top:8px;">Promo 2: belum aktif.</div>
-                        <div id="promo-summary-3" class="small" style="margin-top:8px;">Promo 3: belum aktif.</div>
+                        <div class="small">Promo aktif akan dipakai otomatis saat qty transaksi cocok. Promo termurah yang valid diprioritaskan lebih dulu.</div>
                     </div>
                     <div class="info-strip" style="margin-top:12px;">
                         <div class="small" id="promo-best-note">Belum ada promo yang aktif.</div>
@@ -503,6 +509,8 @@
     </div>
 </div>
 
+<?php $barangBaseUrl = 'index.php?route=barang' . (!empty($keyword) ? '&q=' . urlencode((string) $keyword) : ''); ?>
+
 <div class="modal-backdrop <?= !empty($viewItem) ? 'active' : '' ?>" id="barang-view-modal">
     <div class="modal" style="width:min(720px, 100%);">
         <div class="modal-head">
@@ -510,7 +518,7 @@
                 <div class="section-title">Detail Barang</div>
                 <h3 style="margin:0;"><?= htmlspecialchars((string) ($viewItem['name'] ?? '-')) ?></h3>
             </div>
-            <a href="index.php?route=barang" class="modal-close">Tutup</a>
+            <a href="<?= htmlspecialchars($barangBaseUrl) ?>" class="modal-close">Tutup</a>
         </div>
 
         <?php if (!empty($viewItem)): ?>
@@ -534,12 +542,23 @@
                     <div class="small">Eceran</div><strong><?= !empty($viewItem['allow_small_sale']) ? 'Ya' : 'Tidak' ?></strong>
                 </div>
                 <div class="detail-box">
-                    <div class="small">Harga Beli</div><strong><?= rupiah((float) ($viewItem['purchase_price'] ?? 0)) ?></strong>
+                    <div class="small">Harga Beli di Struk</div><strong><?= rupiah((float) ($viewItem['purchase_price'] ?? 0)) ?></strong>
+                </div>
+                <div class="detail-box">
+                    <div class="small">Harga Modal Satuan Kecil</div><strong><?= rupiah((float) ($viewItem['cost_per_small'] ?? 0)) ?></strong>
+                </div>
+                <div class="detail-box highlight-price">
+                    <div class="small">Harga Ecer</div><strong><?= rupiah((float) ($viewItem['unit_price'] ?? 0)) ?></strong>
+                </div>
+                <div class="detail-box highlight-profit">
+                    <div class="small">Untung</div>
+                    <strong><?= rupiah((float) ($viewItem['active_profit_value'] ?? 0)) ?></strong>
+                    <div class="small" style="margin-top:4px;">per <?= htmlspecialchars((string) ($viewItem['active_profit_unit'] ?? '-')) ?></div>
                 </div>
             </div>
 
             <div class="action-row" style="margin-top:16px;">
-                <a class="btn btn-secondary" href="index.php?route=barang&edit=<?= (int) $viewItem['id'] ?>">Edit</a>
+                <a class="btn btn-secondary" href="<?= htmlspecialchars($barangBaseUrl . '&edit=' . (int) $viewItem['id']) ?>">Edit</a>
                 <form method="post" onsubmit="return confirm('Hapus barang ini?');" style="margin:0;">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="<?= (int) $viewItem['id'] ?>">
@@ -554,17 +573,17 @@
     function toggleBarangModal(show) {
         document.getElementById('barang-modal').classList.toggle('active', show);
         if (!show) {
-            window.location.href = 'index.php?route=barang';
+            window.location.href = <?= json_encode($barangBaseUrl) ?>;
         }
     }
 
     (function() {
-        const stockModeInput = document.getElementById('stock_mode');
-        const stockModeNote = document.getElementById('stock-mode-note');
-        const stockAddBtn = document.getElementById('stock-add-btn');
-        const stockAdjustBtn = document.getElementById('stock-adjust-btn');
-        const stockLargeField = document.getElementById('stock_large');
-        const stockSmallField = document.getElementById('stock_small');
+        const updatePurchaseInput = document.getElementById('update_purchase');
+        const updatePurchaseToggle = document.getElementById('update_purchase_toggle');
+        const purchaseReceiptField = document.getElementById('purchase_receipt_total');
+        const purchaseQtyField = document.getElementById('purchase_large_qty');
+        const initialPurchaseReceiptValue = purchaseReceiptField ? purchaseReceiptField.value : '';
+        const initialPurchaseQtyValue = purchaseQtyField ? purchaseQtyField.value : '';
 
         function rupiah(value) {
             return 'Rp ' + Math.round(value || 0).toLocaleString('id-ID');
@@ -575,37 +594,9 @@
             return digits === '' ? '' : Number(digits).toLocaleString('id-ID');
         }
 
-        function splitStock(total, smallQty) {
-            return {
-                large: Math.floor(total / smallQty),
-                small: total % smallQty
-            };
-        }
-
         function getMoneyValue(id) {
-            return parseFloat((document.getElementById(id).value || '0').replace(/[^\d]/g, '')) || 0;
-        }
-
-        function syncFromTotal() {
-            const totalInput = document.getElementById('stock_total');
-            const smallQty = Math.max(1, parseInt(document.getElementById('small_unit_qty').value || '1', 10));
-            const total = Math.max(0, parseInt(totalInput.value || '0', 10));
-            const parts = splitStock(total, smallQty);
-            document.getElementById('stock_large').value = parts.large;
-            document.getElementById('stock_small').value = parts.small;
-        }
-
-        function syncFromSplit() {
-            const smallQty = Math.max(1, parseInt(document.getElementById('small_unit_qty').value || '1', 10));
-            let stockLarge = Math.max(0, parseInt(document.getElementById('stock_large').value || '0', 10));
-            let stockSmall = Math.max(0, parseInt(document.getElementById('stock_small').value || '0', 10));
-            if (stockSmall >= smallQty) {
-                stockLarge += Math.floor(stockSmall / smallQty);
-                stockSmall = stockSmall % smallQty;
-                document.getElementById('stock_large').value = stockLarge;
-                document.getElementById('stock_small').value = stockSmall;
-            }
-            document.getElementById('stock_total').value = (stockLarge * smallQty) + stockSmall;
+            const node = document.getElementById(id);
+            return node ? (parseFloat((node.value || '0').replace(/[^\d]/g, '')) || 0) : 0;
         }
 
         function renderPromoNote(index, unitSmall) {
@@ -624,42 +615,25 @@
         function recalc(fromTotal) {
             const purchaseReceiptTotal = getMoneyValue('purchase_receipt_total');
             const selling = getMoneyValue('selling_price');
+            const allowSmallSaleField = document.querySelector('input[name="allow_small_sale"]');
+            const allowSmallSale = !!(allowSmallSaleField && allowSmallSaleField.checked);
             const smallQty = Math.max(1, parseInt(document.getElementById('small_unit_qty').value || '1', 10));
             const unitLarge = document.getElementById('unit_large').value || 'Bungkus';
             const unitSmall = document.getElementById('unit_small').value || 'Batang';
             const stockTotalInput = document.getElementById('stock_total');
-            const stockSmallInput = document.getElementById('stock_small');
-            const stockLargeInput = document.getElementById('stock_large');
             const purchaseLargeQtyInput = document.getElementById('purchase_large_qty');
             const unitCostDisplay = document.getElementById('unit_cost_display');
             const stockDisplayReadonly = document.getElementById('stock_display_readonly');
             const purchaseTotalDisplay = document.getElementById('purchase_total_display');
-
-            if (fromTotal) {
-                syncFromTotal();
-            } else {
-                syncFromSplit();
-            }
-
-            const stockTotal = Math.max(0, parseInt(stockTotalInput.value || '0', 10));
-            const stockLarge = Math.max(0, parseInt(stockLargeInput.value || '0', 10));
-            const stockSmall = Math.max(0, parseInt(stockSmallInput.value || '0', 10));
             const purchaseLargeQty = Math.max(0, parseInt((purchaseLargeQtyInput ? purchaseLargeQtyInput.value : '0') || '0', 10));
-            const purchaseBasisQty = purchaseLargeQty;
             const unitPriceValue = getMoneyValue('unit_price');
-            const existingStock = <?= (int) ($editItem['stock'] ?? 0) ?>;
-            const purchasePerPcs = purchaseLargeQty > 0 ? Math.round(purchaseReceiptTotal / purchaseLargeQty) : 0;
-            const totalHargaBeli = purchaseReceiptTotal;
-            const modalEcer = purchaseBasisQty > 0 ? Math.round(totalHargaBeli / purchaseBasisQty) : 0;
-            const profitPerSmall = unitPriceValue - modalEcer;
-            const profitPerLarge = selling - totalHargaBeli;
-            const isAdjustMode = stockModeInput && stockModeInput.value === 'adjust';
-            const previewStockTotal = isAdjustMode ? stockTotal : (existingStock + stockTotal);
-            const previewLarge = Math.floor(previewStockTotal / smallQty);
-            const previewSmall = previewStockTotal % smallQty;
-            const previewStockText = previewLarge + ' ' + unitLarge + (previewSmall > 0 ? ' ' + previewSmall + ' ' + unitSmall : '');
+            const purchasePerPcs = purchaseReceiptTotal;
+            const totalHargaBeli = purchaseReceiptTotal * purchaseLargeQty;
+            const modalEcer = smallQty > 0 ? Math.round(purchasePerPcs / smallQty) : 0;
+            const profitPerSmall = allowSmallSale ? (unitPriceValue - modalEcer) : 0;
+            const profitPerLarge = selling - purchasePerPcs;
+            const previewStockTotal = Math.max(0, parseInt((stockTotalInput ? stockTotalInput.value : '0') || '0', 10));
 
-            stockSmallInput.max = Math.max(0, smallQty);
             if (purchaseTotalDisplay) {
                 purchaseTotalDisplay.value = formatNumber(totalHargaBeli);
             }
@@ -671,20 +645,22 @@
                 unitCostDisplay.value = formatNumber(modalEcer);
             }
             if (stockDisplayReadonly) {
-                stockDisplayReadonly.value = previewStockText;
+                stockDisplayReadonly.value = stockDisplayReadonly.value || '';
             }
-            document.getElementById('stock-preview').textContent = 'Stock: ' + stockLarge + ' ' + unitLarge + (stockSmall > 0 ? ' ' + stockSmall + ' ' + unitSmall : '');
-            document.getElementById('stock-total-note').textContent = isAdjustMode ?
-                ('Stock setelah koreksi: ' + previewStockText) :
-                ('Stock gudang setelah simpan: ' + previewStockText);
-            document.getElementById('purchase-preview').textContent = 'Total Harga Beli: ' + rupiah(purchaseReceiptTotal) + ' / ' + purchaseLargeQty + ' = ' + rupiah(purchasePerPcs) + ' per pcs';
-            document.getElementById('price-preview').textContent = 'Harga Modal Ecer: ' + rupiah(totalHargaBeli) + ' / ' + purchaseBasisQty + ' = ' + rupiah(modalEcer);
-            document.getElementById('profit-note').textContent = 'Profit (satuan Besar): ' + rupiah(selling) + ' - ' + rupiah(totalHargaBeli) + ' = ' + rupiah(profitPerLarge);
-            document.getElementById('profit-small-note').textContent = 'Profit (satuan Kecil): ' + rupiah(unitPriceValue) + ' - ' + rupiah(modalEcer) + ' = ' + rupiah(profitPerSmall);
-            renderPromoNote(1, unitSmall);
-            renderPromoNote(2, unitSmall);
-            renderPromoNote(3, unitSmall);
-            const activePromos = [1, 2, 3].map(function(index) {
+            document.getElementById('stock-preview').textContent = 'Stok aktif: ' + (stockDisplayReadonly ? stockDisplayReadonly.value : (previewStockTotal + ' ' + unitSmall));
+            document.getElementById('stock-total-note').textContent = 'Perubahan stok dilakukan dari modul Receive Item dan Stok Opname.';
+            document.getElementById('purchase-preview').textContent = 'Total Harga Beli: ' + rupiah(purchaseReceiptTotal) + ' x ' + purchaseLargeQty + ' = ' + rupiah(totalHargaBeli);
+            document.getElementById('price-preview').textContent = allowSmallSale
+                ? ('Harga Modal Ecer: ' + rupiah(purchasePerPcs) + ' / ' + smallQty + ' = ' + rupiah(modalEcer))
+                : 'Harga Modal Ecer: Tidak dipakai karena barang tidak dijual ecer';
+            document.getElementById('profit-note').textContent = 'Profit (satuan Besar): ' + rupiah(selling) + ' - ' + rupiah(purchasePerPcs) + ' = ' + rupiah(profitPerLarge);
+            document.getElementById('profit-small-note').textContent = allowSmallSale
+                ? ('Profit (satuan Kecil): ' + rupiah(unitPriceValue) + ' - ' + rupiah(modalEcer) + ' = ' + rupiah(profitPerSmall))
+                : 'Profit (satuan Kecil): Tidak dipakai karena barang tidak dijual ecer';
+            [1, 2, 3, 4, 5, 6].forEach(function(index) {
+                renderPromoNote(index, unitSmall);
+            });
+            const activePromos = [1, 2, 3, 4, 5, 6].map(function(index) {
                 return {
                     index: index,
                     qty: Math.max(0, parseInt(document.getElementById('promo_qty_' + index).value || '0', 10)),
@@ -700,67 +676,65 @@
                 'Belum ada promo yang aktif.';
         }
 
-        function setStockMode(mode) {
-            if (!stockModeInput) {
-                return;
+        function setPurchaseLockState(isUnlocked) {
+            if (updatePurchaseInput) {
+                updatePurchaseInput.value = isUnlocked ? '1' : '0';
             }
 
-            stockModeInput.value = mode;
-
-            if (stockModeNote) {
-                stockModeNote.textContent = mode === 'adjust' ?
-                    'Mode koreksi stok aktif. Nilai yang diisi akan menjadi stok aktual hasil opname.' :
-                    'Mode tambah stok aktif. Nilai yang diisi akan ditambahkan ke Stok Gudang.';
-            }
-
-            if (stockAddBtn && stockAdjustBtn) {
-                stockAddBtn.classList.toggle('btn-secondary', mode === 'add');
-                stockAddBtn.classList.toggle('btn-info', mode !== 'add');
-                stockAdjustBtn.classList.toggle('btn-secondary', mode !== 'adjust');
-                stockAdjustBtn.classList.toggle('btn-info', mode === 'adjust');
-            }
-
-            [stockLargeField, stockSmallField].forEach(function(field) {
+            [purchaseReceiptField, purchaseQtyField].forEach(function(field) {
                 if (!field) {
                     return;
                 }
-
-                field.classList.remove('stock-input-focus', 'adjust');
-                field.classList.add('stock-input-focus');
-                if (mode === 'adjust') {
-                    field.classList.add('adjust');
-                }
+                field.readOnly = !isUnlocked;
             });
 
-            recalc(false);
+            if (isUnlocked) {
+                if (purchaseReceiptField) {
+                    purchaseReceiptField.value = '';
+                }
+                if (purchaseQtyField) {
+                    purchaseQtyField.value = '0';
+                }
+            } else {
+                if (purchaseReceiptField) {
+                    purchaseReceiptField.value = initialPurchaseReceiptValue;
+                }
+                if (purchaseQtyField) {
+                    purchaseQtyField.value = initialPurchaseQtyValue;
+                }
+            }
         }
 
         document.querySelectorAll('.money-input').forEach(function(el) {
             el.addEventListener('input', function() {
                 this.value = formatNumber(this.value);
+                recalc(true);
             });
         });
 
-        if (stockAddBtn && stockAdjustBtn) {
-            stockAddBtn.addEventListener('click', function() {
-                setStockMode('add');
+        document.querySelectorAll('#small_unit_qty, #unit_large, #unit_small, #purchase_large_qty, #promo_qty_1, #promo_qty_2, #promo_qty_3, #promo_qty_4, #promo_qty_5, #promo_qty_6').forEach(function(el) {
+            el.addEventListener('input', function() {
+                recalc(false);
             });
-            stockAdjustBtn.addEventListener('click', function() {
-                setStockMode('adjust');
+        });
+        document.querySelectorAll('#purchase_price, #selling_price, #unit_price, #promo_price_1, #promo_price_2, #promo_price_3, #promo_price_4, #promo_price_5, #promo_price_6').forEach(function(el) {
+            el.addEventListener('input', function() {
+                recalc(false);
             });
-            setStockMode('add');
+        });
+        document.querySelectorAll('input[name="allow_small_sale"]').forEach(function(el) {
+            el.addEventListener('change', function() {
+                recalc(false);
+            });
+        });
+
+        if (updatePurchaseToggle) {
+            updatePurchaseToggle.addEventListener('change', function() {
+                setPurchaseLockState(this.checked);
+                recalc(true);
+            });
+            setPurchaseLockState(updatePurchaseToggle.checked);
         }
-
-        document.querySelectorAll('#stock_large, #stock_small, #small_unit_qty, #unit_large, #unit_small, #purchase_large_qty, #promo_qty_1, #promo_qty_2, #promo_qty_3').forEach(function(el) {
-            el.addEventListener('input', function() {
-                recalc(false);
-            });
-        });
-        document.querySelectorAll('#purchase_price, #selling_price, #unit_price, #promo_price_1, #promo_price_2, #promo_price_3').forEach(function(el) {
-            el.addEventListener('input', function() {
-                recalc(false);
-            });
-        });
 
         recalc(true);
     }());

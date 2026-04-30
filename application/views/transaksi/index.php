@@ -398,11 +398,11 @@ $profit = array_sum(array_column($cart, 'line_profit'));
 </style>
 <div class="card transaction-shell">
     <div class="transaction-head-grid">
-        <div style="padding:10px 14px; border-right:1px solid #333;">Customer: CASH</div>
+        <div id="header-customer-label" style="padding:10px 14px; border-right:1px solid #333;">Customer: UMUM</div>
         <div style="padding:10px 14px; border-right:1px solid #333;">Salesman:</div>
-        <div style="padding:10px 14px; border-right:1px solid #333;">Termin: Cash</div>
+        <div id="header-payment-label" style="padding:10px 14px; border-right:1px solid #333;">Termin: Tunai</div>
         <div style="padding:10px 14px; border-right:1px solid #333;">Tanggal: <?= date('d M Y') ?></div>
-        <div style="padding:10px 14px;">No Penjualan: AUTO</div>
+        <div style="padding:10px 14px;">No Penjualan: <?= htmlspecialchars((string) ($nextInvoiceNo ?? 'AUTO')) ?></div>
     </div>
     <div style="padding:10px 14px; background:#fff8db; color:#8a5a00; font-size:13px; font-weight:700;">Kategori Pembiayaan: Konsumsi Pribadi</div>
     <div class="transaction-main-grid">
@@ -485,7 +485,27 @@ $profit = array_sum(array_column($cart, 'line_profit'));
     <form method="post" id="checkout-form">
         <input type="hidden" name="action" value="checkout">
         <div class="form-grid">
-            <div><div class="small">Pembayaran</div><select name="payment_type" required><option value="Tunai">Tunai</option><option value="QRIS">QRIS</option></select></div>
+            <div>
+                <div class="small">Pembayaran</div>
+                <select name="payment_type" id="payment_type" required>
+                    <option value="Tunai">Tunai</option>
+                    <option value="QRIS">QRIS</option>
+                    <option value="Hutang">Hutang</option>
+                </select>
+            </div>
+            <div id="customer-field" style="display:none;">
+                <div class="small">Pelanggan</div>
+                <select name="customer_id" id="customer_id">
+                    <option value="0">Pilih Pelanggan</option>
+                    <?php foreach ($customers as $customer): ?>
+                        <option value="<?= (int) $customer['id'] ?>"><?= htmlspecialchars((string) $customer['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div id="due-date-field" style="display:none;">
+                <div class="small">Jatuh Tempo</div>
+                <input type="date" name="due_date" id="due_date">
+            </div>
         </div>
     </form>
 </div>
@@ -794,6 +814,13 @@ $profit = array_sum(array_column($cart, 'line_profit'));
         const cashPaid = document.getElementById('cash_paid');
         const cashPaidDisplay = document.getElementById('cash_paid_display');
         const changeAmount = document.getElementById('change_amount');
+        const paymentTypeSelect = document.getElementById('payment_type');
+        const customerSelect = document.getElementById('customer_id');
+        const customerField = document.getElementById('customer-field');
+        const dueDateField = document.getElementById('due-date-field');
+        const dueDateInput = document.getElementById('due_date');
+        const headerCustomerLabel = document.getElementById('header-customer-label');
+        const headerPaymentLabel = document.getElementById('header-payment-label');
         const subtotal = <?= json_encode((float) $subtotal) ?>;
         const checkoutForm = document.getElementById('checkout-form');
         const confirmCheckout = document.getElementById('confirm-checkout');
@@ -808,6 +835,46 @@ $profit = array_sum(array_column($cart, 'line_profit'));
             changeAmount.value = formatInputNumber(Math.max(0, paid - subtotal));
         }
 
+        function syncCheckoutMode() {
+            const paymentType = paymentTypeSelect ? paymentTypeSelect.value : 'Tunai';
+            const isDebt = paymentType === 'Hutang';
+            const isCash = paymentType === 'Tunai';
+
+            if (customerField) {
+                customerField.style.display = isDebt ? '' : 'none';
+            }
+            if (dueDateField) {
+                dueDateField.style.display = isDebt ? '' : 'none';
+            }
+            if (cashPaidDisplay) {
+                cashPaidDisplay.readOnly = !isCash;
+                cashPaidDisplay.style.background = isCash ? '#fff' : '#f5f7fa';
+                if (!isCash) {
+                    cashPaid.value = paymentType === 'QRIS' ? String(Math.round(subtotal)) : '0';
+                    cashPaidDisplay.value = formatInputNumber(cashPaid.value);
+                }
+            }
+            if (changeAmount) {
+                changeAmount.value = isCash ? changeAmount.value : '0';
+            }
+            if (customerSelect && !isDebt) {
+                customerSelect.value = '0';
+            }
+            if (dueDateInput && !isDebt) {
+                dueDateInput.value = '';
+            }
+            if (headerPaymentLabel) {
+                headerPaymentLabel.textContent = 'Termin: ' + paymentType;
+            }
+            if (headerCustomerLabel) {
+                const customerText = isDebt && customerSelect && customerSelect.selectedIndex > 0
+                    ? customerSelect.options[customerSelect.selectedIndex].text
+                    : 'UMUM';
+                headerCustomerLabel.textContent = 'Customer: ' + customerText;
+            }
+            updateChange();
+        }
+
         if (cashPaid && cashPaidDisplay && changeAmount) {
             cashPaidDisplay.addEventListener('input', function () {
                 const raw = this.value.replace(/[^\d]/g, '');
@@ -818,11 +885,29 @@ $profit = array_sum(array_column($cart, 'line_profit'));
             updateChange();
         }
 
+        if (paymentTypeSelect) {
+            paymentTypeSelect.addEventListener('change', syncCheckoutMode);
+        }
+
+        if (customerSelect) {
+            customerSelect.addEventListener('change', syncCheckoutMode);
+        }
+
+        syncCheckoutMode();
+
         if (confirmCheckout && checkoutForm) {
             confirmCheckout.addEventListener('click', function () {
+                const paymentType = paymentTypeSelect ? paymentTypeSelect.value : 'Tunai';
                 const paid = parseFloat(cashPaid.value || '0');
                 const change = Math.max(0, paid - subtotal);
-                const summary = 'Total belanja: ' + rupiah(subtotal) + '\nUang bayar: ' + rupiah(paid) + '\nKembalian: ' + rupiah(change) + '\n\nLanjut simpan transaksi?';
+                if (paymentType === 'Hutang' && customerSelect && customerSelect.value === '0') {
+                    window.alert('Pilih pelanggan terlebih dahulu untuk transaksi hutang.');
+                    customerSelect.focus();
+                    return;
+                }
+                const summary = paymentType === 'Hutang'
+                    ? 'Total belanja: ' + rupiah(subtotal) + '\nPembayaran: Hutang\nPelanggan: ' + (customerSelect && customerSelect.selectedIndex > 0 ? customerSelect.options[customerSelect.selectedIndex].text : '-') + '\n\nLanjut simpan transaksi?'
+                    : 'Total belanja: ' + rupiah(subtotal) + '\nUang bayar: ' + rupiah(paid) + '\nKembalian: ' + rupiah(change) + '\n\nLanjut simpan transaksi?';
                 if (window.confirm(summary)) {
                     checkoutForm.submit();
                 }
@@ -830,29 +915,3 @@ $profit = array_sum(array_column($cart, 'line_profit'));
         }
     }());
 </script>
-
-<div class="card" style="margin-top:18px;">
-    <h3>List Transaksi</h3>
-    <div class="transaction-list-wrap">
-        <table class="latest-sales-table">
-            <thead><tr><th>Invoice</th><th>Pembayaran</th><th>Total</th><th>Tanggal</th><th>Aksi</th></tr></thead>
-            <tbody>
-            <?php foreach ($latestSales as $sale): ?>
-                <tr>
-                    <td data-label="Invoice"><?= htmlspecialchars($sale['invoice_no']) ?></td>
-                    <td data-label="Pembayaran"><?= htmlspecialchars($sale['payment_type']) ?></td>
-                    <td data-label="Total"><?= rupiah((float) $sale['subtotal']) ?></td>
-                    <td data-label="Tanggal"><?= htmlspecialchars($sale['transaction_date']) ?></td>
-                    <td data-label="Aksi">
-                        <form method="post" onsubmit="return confirm('Hapus transaksi ini? Stok akan dikembalikan.');">
-                            <input type="hidden" name="action" value="delete_sale">
-                            <input type="hidden" name="sale_id" value="<?= (int) $sale['id'] ?>">
-                            <button class="btn-secondary" type="submit">Hapus</button>
-                        </form>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-</div>

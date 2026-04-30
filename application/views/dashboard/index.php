@@ -4,6 +4,7 @@ $detailQuery = array_filter([
     'date_from' => $filterDateFrom ?? '',
     'date_to' => $filterDateTo ?? '',
 ]);
+$isFiltered = !empty($filterDateFrom) || !empty($filterDateTo);
 ?>
 <style>
     .dashboard-transactions {
@@ -38,48 +39,6 @@ $detailQuery = array_filter([
     .dashboard-transactions .section-actions .btn {
         width: auto;
         padding: 10px 14px;
-    }
-
-    .dashboard-filter {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-        padding: 14px;
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        background: linear-gradient(180deg, #fcfcfd, #f8fafc);
-        margin-bottom: 16px;
-    }
-
-    .dashboard-filter .filter-field {
-        display: grid;
-        gap: 6px;
-    }
-
-    .dashboard-filter .filter-actions {
-        display: flex;
-        align-items: end;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .dashboard-filter .filter-actions .btn,
-    .dashboard-filter .filter-actions button {
-        width: auto;
-        min-width: 108px;
-        border-radius: 12px;
-    }
-
-    .dashboard-filter .filter-actions .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 11px 12px;
-    }
-
-    .dashboard-filter .filter-actions .btn-secondary {
-        background: var(--red);
-        color: var(--white);
     }
 
     .dashboard-table-wrap {
@@ -162,6 +121,48 @@ $detailQuery = array_filter([
         color: #667085;
     }
 
+    .dashboard-filter {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: linear-gradient(180deg, #fcfcfd, #f8fafc);
+        margin-bottom: 16px;
+    }
+
+    .dashboard-filter .filter-field {
+        display: grid;
+        gap: 6px;
+    }
+
+    .dashboard-filter .filter-actions {
+        display: flex;
+        align-items: end;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .dashboard-filter .filter-actions .btn,
+    .dashboard-filter .filter-actions button {
+        width: auto;
+        min-width: 108px;
+        border-radius: 12px;
+    }
+
+    .dashboard-filter .filter-actions .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 11px 12px;
+    }
+
+    .dashboard-filter .filter-actions .btn-secondary {
+        background: var(--red);
+        color: var(--white);
+    }
+
     .history-stack {
         display: grid;
         gap: 14px;
@@ -212,12 +213,12 @@ $detailQuery = array_filter([
     }
 
     @media (max-width: 920px) {
-        .dashboard-filter {
-            grid-template-columns: 1fr;
-        }
-
         .history-head {
             flex-direction: column;
+        }
+
+        .dashboard-filter {
+            grid-template-columns: 1fr;
         }
     }
 
@@ -243,6 +244,10 @@ $detailQuery = array_filter([
             width: 100%;
         }
 
+        .dashboard-table-wrap {
+            overflow-x: auto;
+        }
+
         .dashboard-filter {
             padding: 12px;
         }
@@ -256,10 +261,6 @@ $detailQuery = array_filter([
         .dashboard-filter .filter-actions button {
             width: 100%;
             min-width: 0;
-        }
-
-        .dashboard-table-wrap {
-            overflow-x: auto;
         }
 
         .history-summary {
@@ -346,15 +347,15 @@ $detailQuery = array_filter([
 </style>
 <div class="grid cards">
     <div class="card">
-        <div class="small">Penjualan Hari Ini</div>
+        <div class="small"><?= $isFiltered ? 'Penjualan Terfilter' : 'Penjualan Hari Ini' ?></div>
         <div class="metric"><?= rupiah($summary['sales']) ?></div>
     </div>
     <div class="card">
-        <div class="small">Keuntungan Hari Ini</div>
+        <div class="small"><?= $isFiltered ? 'Keuntungan Terfilter' : 'Keuntungan Hari Ini' ?></div>
         <div class="metric"><?= rupiah($summary['profit']) ?></div>
     </div>
     <div class="card">
-        <div class="small">Saldo Modal (Bruto)</div>
+        <div class="small">Saldo Modal (Bruto) (WARUNG MODAL)</div>
         <div class="metric"><?= rupiah($summary['vault']) ?></div>
     </div>
     <div class="card">
@@ -368,7 +369,7 @@ $detailQuery = array_filter([
         <div class="section-head">
             <div class="section-copy">
                 <h3>Transaksi Terbaru</h3>
-                <p>Ringkasan transaksi penjualan dengan filter tanggal, detail item, dan aksi cepat langsung dari dashboard.</p>
+                <p>Ringkasan transaksi penjualan harian dengan detail item dan aksi cepat langsung dari dashboard.</p>
             </div>
             <div class="section-actions">
                 <a class="btn btn-secondary" href="index.php?route=transaksi">Lihat Semua Transaksi</a>

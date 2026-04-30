@@ -366,6 +366,26 @@
             color: #475467;
         }
 
+        .search-reset-actions {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .search-reset-actions .btn,
+        .search-reset-actions button {
+            min-width: 120px;
+            min-height: 44px;
+            padding: 0 18px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: none;
+        }
+
         .detail-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -557,7 +577,10 @@
                 <a class="<?= active_menu('barang', $currentRoute) ?>" href="index.php?route=barang">Master Barang</a>
                 <a class="<?= active_menu('pelanggan', $currentRoute) ?>" href="index.php?route=pelanggan">Master Pelanggan</a>
                 <a class="<?= active_menu('transaksi', $currentRoute) ?>" href="index.php?route=transaksi">Transaksi</a>
+                <a class="<?= active_menu('transaksi/list', $currentRoute) ?>" href="index.php?route=transaksi/list">List Transaksi</a>
                 <a class="<?= active_menu('layanan', $currentRoute) ?>" href="index.php?route=layanan">Top Up & PPOB</a>
+                <a class="<?= active_menu('stok/receive', $currentRoute) ?>" href="index.php?route=stok/receive">Receive Item</a>
+                <a class="<?= active_menu('stok/opname', $currentRoute) ?>" href="index.php?route=stok/opname">Stok Opname</a>
                 <a class="<?= active_menu('keuangan/hutang', $currentRoute) ?>" href="index.php?route=keuangan/hutang">Utang</a>
                 <a class="<?= active_menu('keuangan/brankas', $currentRoute) ?>" href="index.php?route=keuangan/brankas">Brankas</a>
                 <a class="<?= active_menu('importexport', $currentRoute) ?>" href="index.php?route=importexport">Import Export</a>

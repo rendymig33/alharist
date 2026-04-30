@@ -23,18 +23,21 @@ class Barang_controller extends Controller
             }
 
             $smallUnitQty = max(1, (int) post('small_unit_qty', 1));
-            $stockLarge = max(0, (int) post('stock_large', 0));
-            $stockSmall = max(0, (int) post('stock_small', 0));
-            $stock = stock_to_smallest_units($stockLarge, $stockSmall, $smallUnitQty);
-            $stockMode = post('stock_mode', 'add');
             $purchaseReceiptTotal = unformat_number((string) post('purchase_receipt_total'));
             $purchaseLargeQty = max(0, (int) post('purchase_large_qty', 0));
             $existingRaw = post('id') !== '' ? $model->findRaw((int) post('id')) : false;
-            $purchaseInput = $purchaseLargeQty > 0 ? ($purchaseReceiptTotal / $purchaseLargeQty) : 0;
-            $purchaseTotal = $purchaseReceiptTotal;
+            $updatePurchase = post('update_purchase', empty($existingRaw) ? '1' : '0');
+            $purchaseInput = $purchaseReceiptTotal;
+            $purchaseTotal = $purchaseReceiptTotal * $purchaseLargeQty;
             $purchaseBasisQty = $purchaseLargeQty;
             $unitLarge = trim((string) post('unit_large'));
             $unitSmall = trim((string) post('unit_small'));
+
+            if (!empty($existingRaw) && $updatePurchase !== '1') {
+                $purchaseInput = (float) ($existingRaw['purchase_price'] ?? 0);
+                $purchaseTotal = (float) ($existingRaw['purchase_total'] ?? 0);
+                $purchaseBasisQty = (int) ($existingRaw['purchase_basis_qty'] ?? 0);
+            }
 
             if ($unitLarge !== '' && $unitSmall !== '' && strcasecmp($unitLarge, $unitSmall) === 0) {
                 flash('Satuan Besar dan Satuan Kecil tidak boleh sama.', 'warning');
@@ -68,8 +71,14 @@ class Barang_controller extends Controller
                     'promo_price_2' => unformat_number((string) post('promo_price_2')),
                     'promo_qty_3' => (int) post('promo_qty_3', 0),
                     'promo_price_3' => unformat_number((string) post('promo_price_3')),
-                    'stock' => $stock,
-                    'stock_mode' => $stockMode,
+                    'promo_qty_4' => (int) post('promo_qty_4', 0),
+                    'promo_price_4' => unformat_number((string) post('promo_price_4')),
+                    'promo_qty_5' => (int) post('promo_qty_5', 0),
+                    'promo_price_5' => unformat_number((string) post('promo_price_5')),
+                    'promo_qty_6' => (int) post('promo_qty_6', 0),
+                    'promo_price_6' => unformat_number((string) post('promo_price_6')),
+                    'stock' => (int) ($existingRaw['stock'] ?? 0),
+                    'update_purchase' => $updatePurchase,
                     'exp_date' => null,
                 ]);
 
@@ -81,7 +90,7 @@ class Barang_controller extends Controller
         if (!empty($_GET['edit'])) {
             $editItem = $model->find((int) $_GET['edit']);
             $recommendationInput = [
-                'purchase_receipt_total' => (float) ($editItem['purchase_total'] ?? 0),
+                'purchase_receipt_total' => (float) ($editItem['purchase_price'] ?? 0),
                 'selling_price' => (float) ($editItem['selling_price'] ?? 0),
                 'small_unit_qty' => (int) ($editItem['small_unit_qty'] ?? 1),
             ];

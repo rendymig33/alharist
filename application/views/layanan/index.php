@@ -22,9 +22,36 @@
         overflow-x: auto;
     }
 
+    .service-total-box {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #fff;
+        padding: 16px;
+    }
+
+    .service-pay-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 160px;
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .service-search {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 12px;
+        align-items: end;
+        margin-bottom: 16px;
+    }
+
     @media (max-width: 920px) {
         .service-head-grid,
         .service-main-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .service-pay-row,
+        .service-search {
             grid-template-columns: 1fr;
         }
     }
@@ -95,10 +122,13 @@
             </form>
         </div>
         <div style="padding:16px; background:#fafafa;">
-            <div class="small">Layanan</div>
-            <div style="font-size:54px; font-weight:700; text-align:right; margin:12px 0 18px;" id="ppob-total">Rp 0</div>
-            <div class="grid">
-                <button type="button" class="btn-green" id="confirm-service">Simpan Layanan</button>
+            <div class="small">TOTAL BELANJA</div>
+            <div class="service-total-box">
+                <div style="font-size:54px; font-weight:700; text-align:right; margin:0;" id="ppob-total">Rp 0</div>
+            </div>
+            <div class="service-pay-row">
+                <input type="text" class="money-input" id="service-paid" placeholder="Masukan Uang">
+                <button type="button" class="btn-green" id="confirm-service" style="border-radius:999px;">Bayar</button>
             </div>
         </div>
     </div>
@@ -106,6 +136,15 @@
 
 <div class="card" style="margin-top:18px;">
     <h3>List Layanan</h3>
+    <form method="get" class="service-search">
+        <input type="hidden" name="route" value="layanan">
+        <div>
+            <div class="small">Cari Layanan</div>
+            <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari kode, jenis, pelanggan, atau tujuan">
+        </div>
+        <button type="submit" class="btn btn-secondary">Search</button>
+        <a href="index.php?route=layanan" class="btn btn-info">Reset</a>
+    </form>
     <div class="service-list-wrap">
         <table>
             <thead><tr><th>Kode</th><th>Jenis</th><th>Tujuan</th><th>Jual</th><th>Token</th><th>Profit</th><th>Aksi</th></tr></thead>

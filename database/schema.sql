@@ -23,6 +23,12 @@ CREATE TABLE IF NOT EXISTS items (
     promo_price_2 REAL NOT NULL DEFAULT 0,
     promo_qty_3 INTEGER NOT NULL DEFAULT 0,
     promo_price_3 REAL NOT NULL DEFAULT 0,
+    promo_qty_4 INTEGER NOT NULL DEFAULT 0,
+    promo_price_4 REAL NOT NULL DEFAULT 0,
+    promo_qty_5 INTEGER NOT NULL DEFAULT 0,
+    promo_price_5 REAL NOT NULL DEFAULT 0,
+    promo_qty_6 INTEGER NOT NULL DEFAULT 0,
+    promo_price_6 REAL NOT NULL DEFAULT 0,
     stock INTEGER NOT NULL DEFAULT 0,
     exp_date TEXT,
     created_at TEXT NOT NULL
@@ -96,6 +102,7 @@ CREATE TABLE IF NOT EXISTS debts (
 CREATE TABLE IF NOT EXISTS debt_payments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     debt_id INTEGER NOT NULL,
+    vault_id INTEGER,
     amount REAL NOT NULL,
     payment_date TEXT NOT NULL,
     notes TEXT
@@ -116,6 +123,30 @@ CREATE TABLE IF NOT EXISTS service_transactions (
     payment_type TEXT NOT NULL,
     vault_id INTEGER,
     token_number TEXT,
+    transaction_date TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS item_receives (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER NOT NULL,
+    qty_large INTEGER NOT NULL DEFAULT 0,
+    qty_small INTEGER NOT NULL DEFAULT 0,
+    qty_total INTEGER NOT NULL DEFAULT 0,
+    purchase_price REAL NOT NULL DEFAULT 0,
+    purchase_total REAL NOT NULL DEFAULT 0,
+    notes TEXT,
+    transaction_date TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS stock_opnames (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER NOT NULL,
+    before_stock INTEGER NOT NULL DEFAULT 0,
+    actual_stock INTEGER NOT NULL DEFAULT 0,
+    adjustment INTEGER NOT NULL DEFAULT 0,
+    notes TEXT,
     transaction_date TEXT NOT NULL,
     created_at TEXT NOT NULL
 );

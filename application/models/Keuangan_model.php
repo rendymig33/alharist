@@ -3,9 +3,21 @@ declare(strict_types=1);
 
 class Keuangan_model extends Model
 {
-    public function allVaults(): array
+    public function allVaults(string $keyword = ''): array
     {
-        return $this->db->query("SELECT * FROM vaults ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+        $keyword = trim($keyword);
+        if ($keyword === '') {
+            return $this->db->query("SELECT * FROM vaults ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $statement = $this->db->prepare("
+            SELECT *
+            FROM vaults
+            WHERE bank_name LIKE :keyword OR account_name LIKE :keyword
+            ORDER BY id DESC
+        ");
+        $statement->execute(['keyword' => '%' . $keyword . '%']);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findVault(int $id): array|false
@@ -122,6 +134,47 @@ class Keuangan_model extends Model
         return true;
     }
 
+    public function deleteVaultTransaction(int $transactionId): bool
+    {
+        $statement = $this->db->prepare("SELECT * FROM vault_transactions WHERE id = :id");
+        $statement->execute(['id' => $transactionId]);
+        $transaction = $statement->fetch(PDO::FETCH_ASSOC);
+
+        if (!$transaction) {
+            return false;
+        }
+
+        $type = (string) ($transaction['transaction_type'] ?? '');
+        $amount = (float) ($transaction['amount'] ?? 0);
+        $sourceVaultId = (int) ($transaction['source_vault_id'] ?? 0);
+        $targetVaultId = (int) ($transaction['target_vault_id'] ?? 0);
+
+        $this->db->beginTransaction();
+
+        if ($type === 'switching_dana') {
+            if ($sourceVaultId > 0) {
+                $this->updateVaultBalance($sourceVaultId, $amount);
+            }
+            if ($targetVaultId > 0) {
+                $this->updateVaultBalance($targetVaultId, -1 * $amount);
+            }
+        } elseif ($type === 'pembelian') {
+            if ($sourceVaultId > 0) {
+                $this->updateVaultBalance($sourceVaultId, $amount);
+            }
+        } elseif ($type === 'dana_masuk') {
+            if ($targetVaultId > 0) {
+                $this->updateVaultBalance($targetVaultId, -1 * $amount);
+            }
+        }
+
+        $delete = $this->db->prepare("DELETE FROM vault_transactions WHERE id = :id");
+        $delete->execute(['id' => $transactionId]);
+
+        $this->db->commit();
+        return true;
+    }
+
     public function vaultTransactions(): array
     {
         $statement = $this->db->query("
@@ -142,6 +195,9 @@ class Keuangan_model extends Model
 
     public function transactionsByVault(int $vaultId): array
     {
+        $vault = $this->findVault($vaultId);
+        $currentBalance = (float) ($vault['balance'] ?? 0);
+
         $manualStatement = $this->db->prepare("
             SELECT
                 vt.id,
@@ -150,6 +206,8 @@ class Keuangan_model extends Model
                 vt.amount,
                 vt.notes,
                 vt.transaction_type,
+                vt.source_vault_id,
+                vt.target_vault_id,
                 source.bank_name AS source_bank_name,
                 source.account_name AS source_account_name,
                 target.bank_name AS target_bank_name,
@@ -171,7 +229,13 @@ class Keuangan_model extends Model
                 sale_items.line_total AS amount,
                 sales.invoice_no AS notes,
                 'penjualan' AS transaction_type,
-                '' AS source_bank_name,
+                NULL AS source_vault_id,
+                sale_items.vault_id AS target_vault_id,
+                CASE
+                    WHEN sales.payment_type = 'Tunai' THEN 'CASH'
+                    WHEN sales.payment_type = 'QRIS' THEN 'QRIS'
+                    ELSE COALESCE(sales.payment_type, '')
+                END AS source_bank_name,
                 '' AS source_account_name,
                 vaults.bank_name AS target_bank_name,
                 vaults.account_name AS target_account_name,
@@ -184,10 +248,53 @@ class Keuangan_model extends Model
         $salesStatement->execute(['vault_id' => $vaultId]);
         $salesRows = $salesStatement->fetchAll(PDO::FETCH_ASSOC);
 
-        $rows = array_merge($manualRows, $salesRows);
-        usort($rows, function (array $a, array $b): int {
+        $debtPaymentStatement = $this->db->prepare("
+            SELECT
+                debt_payments.id,
+                debt_payments.payment_date AS transaction_date,
+                debt_payments.payment_date AS created_at,
+                debt_payments.amount,
+                CASE
+                    WHEN COALESCE(sales.invoice_no, '') <> '' AND COALESCE(customers.name, '') <> '' THEN sales.invoice_no
+                    WHEN COALESCE(sales.invoice_no, '') <> '' THEN sales.invoice_no
+                    WHEN COALESCE(customers.name, '') <> '' THEN customers.name
+                    ELSE 'Pelunasan Hutang'
+                END AS notes,
+                'pelunasan_hutang' AS transaction_type,
+                'PELANGGAN HUTANG' AS source_bank_name,
+                '' AS source_account_name,
+                vaults.bank_name AS target_bank_name,
+                vaults.account_name AS target_account_name,
+                debt_payments.vault_id AS target_vault_id,
+                'hutang' AS source_module
+            FROM debt_payments
+            INNER JOIN debts ON debts.id = debt_payments.debt_id
+            LEFT JOIN sales ON sales.id = debts.sale_id
+            LEFT JOIN customers ON customers.id = debts.customer_id
+            LEFT JOIN vaults ON vaults.id = debt_payments.vault_id
+            WHERE debt_payments.vault_id = :vault_id
+        ");
+        $debtPaymentStatement->execute(['vault_id' => $vaultId]);
+        $debtPaymentRows = $debtPaymentStatement->fetchAll(PDO::FETCH_ASSOC);
+
+        $rows = array_merge($manualRows, $salesRows, $debtPaymentRows);
+                usort($rows, function (array $a, array $b): int {
             return strcmp(($b['created_at'] ?? ''), ($a['created_at'] ?? ''));
         });
+
+        $runningBalance = $currentBalance;
+        foreach ($rows as &$row) {
+            $isDebit = (int) ($row['target_vault_id'] ?? 0) === $vaultId
+                || in_array((string) ($row['transaction_type'] ?? ''), ['penjualan', 'pelunasan_hutang'], true);
+            $debet = $isDebit ? (float) ($row['amount'] ?? 0) : 0;
+            $kredit = $isDebit ? 0 : (float) ($row['amount'] ?? 0);
+
+            $row['debet'] = $debet;
+            $row['kredit'] = $kredit;
+            $row['ending_balance'] = $runningBalance;
+            $runningBalance = $runningBalance - $debet + $kredit;
+        }
+        unset($row);
 
         return $rows;
     }
@@ -201,30 +308,60 @@ class Keuangan_model extends Model
         return $statement->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function debts(): array
+    public function debts(string $keyword = ''): array
     {
-        $sql = "SELECT debts.*, customers.name AS customer_name, sales.invoice_no
+        $sql = "SELECT debts.*, customers.name AS customer_name, sales.invoice_no,
+                       (debts.total_debt - debts.paid_amount) AS remaining_debt
                 FROM debts
                 LEFT JOIN customers ON customers.id = debts.customer_id
-                LEFT JOIN sales ON sales.id = debts.sale_id
-                ORDER BY debts.id DESC";
-        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+                LEFT JOIN sales ON sales.id = debts.sale_id";
+        $params = [];
+        if (trim($keyword) !== '') {
+            $sql .= " WHERE customers.name LIKE :keyword OR sales.invoice_no LIKE :keyword OR debts.status LIKE :keyword";
+            $params['keyword'] = '%' . trim($keyword) . '%';
+        }
+
+        $sql .= " ORDER BY debts.id DESC";
+        $statement = $this->db->prepare($sql);
+        $statement->execute($params);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function recordDebtPayment(int $debtId, float $amount, string $notes = ''): void
+    public function recordDebtPayment(int $debtId, float $amount, int $vaultId, string $notes = ''): bool
     {
-        $statement = $this->db->prepare("INSERT INTO debt_payments (debt_id, amount, payment_date, notes) VALUES (:debt_id, :amount, :payment_date, :notes)");
+        $debtStatement = $this->db->prepare("SELECT * FROM debts WHERE id = :id");
+        $debtStatement->execute(['id' => $debtId]);
+        $debt = $debtStatement->fetch(PDO::FETCH_ASSOC);
+
+        if (!$debt || $vaultId <= 0) {
+            return false;
+        }
+
+        $remainingDebt = max(0, (float) ($debt['total_debt'] ?? 0) - (float) ($debt['paid_amount'] ?? 0));
+        $paymentAmount = max(0, min($amount, $remainingDebt));
+        if ($paymentAmount <= 0) {
+            return false;
+        }
+
+        $this->db->beginTransaction();
+
+        $statement = $this->db->prepare("INSERT INTO debt_payments (debt_id, vault_id, amount, payment_date, notes) VALUES (:debt_id, :vault_id, :amount, :payment_date, :notes)");
         $statement->execute([
             'debt_id' => $debtId,
-            'amount' => $amount,
+            'vault_id' => $vaultId,
+            'amount' => $paymentAmount,
             'payment_date' => date('Y-m-d'),
             'notes' => $notes,
         ]);
 
         $update = $this->db->prepare("UPDATE debts SET paid_amount = paid_amount + :amount, status = CASE WHEN paid_amount + :amount >= total_debt THEN 'Lunas' ELSE 'Belum Lunas' END WHERE id = :id");
         $update->execute([
-            'amount' => $amount,
+            'amount' => $paymentAmount,
             'id' => $debtId,
         ]);
+
+        $this->updateVaultBalance($vaultId, $paymentAmount);
+        $this->db->commit();
+        return true;
     }
 }

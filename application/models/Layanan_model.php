@@ -15,9 +15,19 @@ class Layanan_model extends Model
         return 'LYN' . str_pad((string) ($lastNumber + 1), 5, '0', STR_PAD_LEFT);
     }
 
-    public function all(): array
+    public function all(string $keyword = ''): array
     {
-        return $this->db->query("SELECT * FROM service_transactions ORDER BY id DESC LIMIT 50")->fetchAll(PDO::FETCH_ASSOC);
+        $keyword = trim($keyword);
+        $sql = "SELECT * FROM service_transactions";
+        $params = [];
+        if ($keyword !== '') {
+            $sql .= " WHERE code LIKE :keyword OR service_type LIKE :keyword OR target_number LIKE :keyword OR customer_name LIKE :keyword";
+            $params['keyword'] = '%' . $keyword . '%';
+        }
+        $sql .= " ORDER BY id DESC LIMIT 50";
+        $statement = $this->db->prepare($sql);
+        $statement->execute($params);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function save(array $data): void

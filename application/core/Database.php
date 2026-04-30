@@ -99,11 +99,35 @@ class Database
         if (!in_array('promo_price_3', $columnNames, true)) {
             $pdo->exec("ALTER TABLE items ADD COLUMN promo_price_3 REAL NOT NULL DEFAULT 0");
         }
+        if (!in_array('promo_qty_4', $columnNames, true)) {
+            $pdo->exec("ALTER TABLE items ADD COLUMN promo_qty_4 INTEGER NOT NULL DEFAULT 0");
+        }
+        if (!in_array('promo_price_4', $columnNames, true)) {
+            $pdo->exec("ALTER TABLE items ADD COLUMN promo_price_4 REAL NOT NULL DEFAULT 0");
+        }
+        if (!in_array('promo_qty_5', $columnNames, true)) {
+            $pdo->exec("ALTER TABLE items ADD COLUMN promo_qty_5 INTEGER NOT NULL DEFAULT 0");
+        }
+        if (!in_array('promo_price_5', $columnNames, true)) {
+            $pdo->exec("ALTER TABLE items ADD COLUMN promo_price_5 REAL NOT NULL DEFAULT 0");
+        }
+        if (!in_array('promo_qty_6', $columnNames, true)) {
+            $pdo->exec("ALTER TABLE items ADD COLUMN promo_qty_6 INTEGER NOT NULL DEFAULT 0");
+        }
+        if (!in_array('promo_price_6', $columnNames, true)) {
+            $pdo->exec("ALTER TABLE items ADD COLUMN promo_price_6 REAL NOT NULL DEFAULT 0");
+        }
 
         $saleItemColumns = $pdo->query("PRAGMA table_info(sale_items)")->fetchAll(PDO::FETCH_ASSOC);
         $saleItemColumnNames = array_column($saleItemColumns, 'name');
         if (!empty($saleItemColumnNames) && !in_array('vault_id', $saleItemColumnNames, true)) {
             $pdo->exec("ALTER TABLE sale_items ADD COLUMN vault_id INTEGER");
+        }
+
+        $debtPaymentColumns = $pdo->query("PRAGMA table_info(debt_payments)")->fetchAll(PDO::FETCH_ASSOC);
+        $debtPaymentColumnNames = array_column($debtPaymentColumns, 'name');
+        if (!empty($debtPaymentColumnNames) && !in_array('vault_id', $debtPaymentColumnNames, true)) {
+            $pdo->exec("ALTER TABLE debt_payments ADD COLUMN vault_id INTEGER");
         }
 
         $serviceColumns = $pdo->query("PRAGMA table_info(service_transactions)")->fetchAll(PDO::FETCH_ASSOC);
@@ -116,6 +140,34 @@ class Database
                 $pdo->exec("ALTER TABLE service_transactions ADD COLUMN token_number TEXT");
             }
         }
+
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS item_receives (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER NOT NULL,
+                qty_large INTEGER NOT NULL DEFAULT 0,
+                qty_small INTEGER NOT NULL DEFAULT 0,
+                qty_total INTEGER NOT NULL DEFAULT 0,
+                purchase_price REAL NOT NULL DEFAULT 0,
+                purchase_total REAL NOT NULL DEFAULT 0,
+                notes TEXT,
+                transaction_date TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        ");
+
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS stock_opnames (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER NOT NULL,
+                before_stock INTEGER NOT NULL DEFAULT 0,
+                actual_stock INTEGER NOT NULL DEFAULT 0,
+                adjustment INTEGER NOT NULL DEFAULT 0,
+                notes TEXT,
+                transaction_date TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        ");
     }
 
     private static function migrateMysql(PDO $pdo): void
@@ -134,9 +186,46 @@ class Database
         self::ensureMysqlColumn($pdo, 'items', 'promo_price_2', "ALTER TABLE items ADD COLUMN promo_price_2 DECIMAL(15,2) NOT NULL DEFAULT 0");
         self::ensureMysqlColumn($pdo, 'items', 'promo_qty_3', "ALTER TABLE items ADD COLUMN promo_qty_3 INT NOT NULL DEFAULT 0");
         self::ensureMysqlColumn($pdo, 'items', 'promo_price_3', "ALTER TABLE items ADD COLUMN promo_price_3 DECIMAL(15,2) NOT NULL DEFAULT 0");
+        self::ensureMysqlColumn($pdo, 'items', 'promo_qty_4', "ALTER TABLE items ADD COLUMN promo_qty_4 INT NOT NULL DEFAULT 0");
+        self::ensureMysqlColumn($pdo, 'items', 'promo_price_4', "ALTER TABLE items ADD COLUMN promo_price_4 DECIMAL(15,2) NOT NULL DEFAULT 0");
+        self::ensureMysqlColumn($pdo, 'items', 'promo_qty_5', "ALTER TABLE items ADD COLUMN promo_qty_5 INT NOT NULL DEFAULT 0");
+        self::ensureMysqlColumn($pdo, 'items', 'promo_price_5', "ALTER TABLE items ADD COLUMN promo_price_5 DECIMAL(15,2) NOT NULL DEFAULT 0");
+        self::ensureMysqlColumn($pdo, 'items', 'promo_qty_6', "ALTER TABLE items ADD COLUMN promo_qty_6 INT NOT NULL DEFAULT 0");
+        self::ensureMysqlColumn($pdo, 'items', 'promo_price_6', "ALTER TABLE items ADD COLUMN promo_price_6 DECIMAL(15,2) NOT NULL DEFAULT 0");
         self::ensureMysqlColumn($pdo, 'sale_items', 'vault_id', "ALTER TABLE sale_items ADD COLUMN vault_id BIGINT UNSIGNED NULL");
+        self::ensureMysqlColumn($pdo, 'debt_payments', 'vault_id', "ALTER TABLE debt_payments ADD COLUMN vault_id BIGINT UNSIGNED NULL");
         self::ensureMysqlColumn($pdo, 'service_transactions', 'customer_id', "ALTER TABLE service_transactions ADD COLUMN customer_id BIGINT UNSIGNED NULL");
         self::ensureMysqlColumn($pdo, 'service_transactions', 'token_number', "ALTER TABLE service_transactions ADD COLUMN token_number VARCHAR(100) NULL");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS item_receives (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                item_id BIGINT UNSIGNED NOT NULL,
+                qty_large INT NOT NULL DEFAULT 0,
+                qty_small INT NOT NULL DEFAULT 0,
+                qty_total INT NOT NULL DEFAULT 0,
+                purchase_price DECIMAL(15,2) NOT NULL DEFAULT 0,
+                purchase_total DECIMAL(15,2) NOT NULL DEFAULT 0,
+                notes TEXT NULL,
+                transaction_date DATE NOT NULL,
+                created_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                KEY idx_item_receives_item_id (item_id)
+            )
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS stock_opnames (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                item_id BIGINT UNSIGNED NOT NULL,
+                before_stock INT NOT NULL DEFAULT 0,
+                actual_stock INT NOT NULL DEFAULT 0,
+                adjustment INT NOT NULL DEFAULT 0,
+                notes TEXT NULL,
+                transaction_date DATE NOT NULL,
+                created_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                KEY idx_stock_opnames_item_id (item_id)
+            )
+        ");
     }
 
     private static function ensureMysqlColumn(PDO $pdo, string $table, string $column, string $sql): void

@@ -3,6 +3,30 @@ declare(strict_types=1);
 
 class Transaksi_model extends Model
 {
+    public function nextInvoiceNo(?string $transactionDate = null): string
+    {
+        $date = $transactionDate ?: date('Y-m-d');
+        $dateKey = date('Ymd', strtotime($date));
+        $statement = $this->db->prepare("
+            SELECT invoice_no
+            FROM sales
+            WHERE transaction_date = :transaction_date
+            ORDER BY id DESC
+            LIMIT 1
+        ");
+        $statement->execute([
+            'transaction_date' => $date,
+        ]);
+        $lastInvoice = (string) $statement->fetchColumn();
+        $lastNumber = 0;
+
+        if ($lastInvoice !== '' && preg_match('/(\d{4})$/', $lastInvoice, $matches)) {
+            $lastNumber = (int) $matches[1];
+        }
+
+        return 'INV-' . $dateKey . '-' . str_pad((string) ($lastNumber + 1), 4, '0', STR_PAD_LEFT);
+    }
+
     private function liveProfitExpr(string $saleAlias = 'sales', string $itemAlias = 'sale_items', string $masterAlias = 'items'): string
     {
         return "
@@ -10,9 +34,8 @@ class Transaksi_model extends Model
                 {$itemAlias}.line_total - (
                     {$itemAlias}.qty * (
                         CASE
+                            WHEN COALESCE({$masterAlias}.small_unit_qty, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0) / {$masterAlias}.small_unit_qty
                             WHEN COALESCE({$masterAlias}.purchase_price, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0)
-                            WHEN COALESCE({$masterAlias}.purchase_basis_qty, 0) > 0 THEN COALESCE({$masterAlias}.purchase_total, 0) / {$masterAlias}.purchase_basis_qty
-                            WHEN COALESCE({$masterAlias}.stock, 0) > 0 THEN COALESCE({$masterAlias}.purchase_total, 0) / {$masterAlias}.stock
                             ELSE COALESCE({$itemAlias}.purchase_price, 0)
                         END
                     )
@@ -26,9 +49,8 @@ class Transaksi_model extends Model
         return "
             (
                 CASE
+                    WHEN COALESCE({$masterAlias}.small_unit_qty, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0) / {$masterAlias}.small_unit_qty
                     WHEN COALESCE({$masterAlias}.purchase_price, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0)
-                    WHEN COALESCE({$masterAlias}.purchase_basis_qty, 0) > 0 THEN COALESCE({$masterAlias}.purchase_total, 0) / {$masterAlias}.purchase_basis_qty
-                    WHEN COALESCE({$masterAlias}.stock, 0) > 0 THEN COALESCE({$masterAlias}.purchase_total, 0) / {$masterAlias}.stock
                     ELSE COALESCE({$itemAlias}.purchase_price, 0)
                 END
             )
@@ -124,6 +146,29 @@ class Transaksi_model extends Model
         $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
         $statement->execute();
 
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function salesList(string $keyword = ''): array
+    {
+        $keyword = trim($keyword);
+        $sql = "
+            SELECT sales.*,
+                   COALESCE(SUM(" . $this->liveProfitExpr() . "), 0) AS total_profit_live
+            FROM sales
+            LEFT JOIN sale_items ON sale_items.sale_id = sales.id
+            LEFT JOIN items ON items.id = sale_items.item_id
+        ";
+        $params = [];
+
+        if ($keyword !== '') {
+            $sql .= " WHERE sales.invoice_no LIKE :keyword OR sales.payment_type LIKE :keyword OR sales.transaction_date LIKE :keyword";
+            $params['keyword'] = '%' . $keyword . '%';
+        }
+
+        $sql .= " GROUP BY sales.id ORDER BY sales.id DESC";
+        $statement = $this->db->prepare($sql);
+        $statement->execute($params);
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 

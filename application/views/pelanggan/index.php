@@ -62,6 +62,17 @@
 
 <div class="card">
     <h3>Daftar Pelanggan</h3>
+    <form method="get" class="customer-toolbar" style="display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:end; margin:16px 0;">
+        <input type="hidden" name="route" value="pelanggan">
+        <div>
+            <div class="small">Cari Pelanggan</div>
+            <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari kode, nama, telepon, atau alamat">
+        </div>
+        <div class="search-reset-actions">
+            <button type="submit" class="btn btn-secondary">Search</button>
+            <a href="index.php?route=pelanggan" class="btn btn-info">Reset</a>
+        </div>
+    </form>
     <div class="customer-table-wrap">
         <table class="customer-table">
             <thead><tr><th>Kode</th><th>Nama</th><th>Telepon</th><th>Alamat</th><th>Aksi</th></tr></thead>
@@ -72,7 +83,16 @@
                     <td data-label="Nama"><?= htmlspecialchars($customer['name']) ?></td>
                     <td data-label="Telepon"><?= htmlspecialchars((string) $customer['phone']) ?></td>
                     <td data-label="Alamat"><?= htmlspecialchars((string) $customer['address']) ?></td>
-                    <td data-label="Aksi"><a class="btn btn-secondary" href="index.php?route=pelanggan&edit=<?= (int) $customer['id'] ?>">Edit</a></td>
+                    <td data-label="Aksi">
+                        <div class="action-row">
+                            <a class="btn btn-secondary" href="index.php?route=pelanggan&edit=<?= (int) $customer['id'] ?>">Edit</a>
+                            <form method="post" onsubmit="return confirm('Hapus pelanggan ini?');" style="margin:0;">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<?= (int) $customer['id'] ?>">
+                                <button type="submit" class="btn btn-danger">Hapus</button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
