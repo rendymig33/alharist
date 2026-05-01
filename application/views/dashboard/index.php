@@ -361,7 +361,7 @@ $summary = array_merge([
         <div class="metric"><?= rupiah($summary['profit']) ?></div>
     </div>
     <div class="card">
-        <div class="small">Saldo Modal (Bruto)</div>
+        <div class="small">Saldo</div>
         <div class="metric"><?= rupiah($summary['vault']) ?></div>
     </div>
     <div class="card">

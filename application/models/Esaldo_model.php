@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class Esaldo_model extends Model
@@ -13,6 +14,21 @@ class Esaldo_model extends Model
         }
 
         return 'ESL' . str_pad((string) ($lastNumber + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    public function allBalances(): array
+    {
+        $sql = "SELECT id, code, selling_price AS balance, created_at FROM items WHERE category = 'E-SALDO' ORDER BY id DESC";
+        $statement = $this->db->prepare($sql);
+        $statement->execute();
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findBalance(int $id): array|false
+    {
+        $statement = $this->db->prepare("SELECT id, code, selling_price AS balance, created_at FROM items WHERE id = :id AND category = 'E-SALDO'");
+        $statement->execute(['id' => $id]);
+        return $statement->fetch(PDO::FETCH_ASSOC);
     }
 
     public function all(string $keyword = ''): array
@@ -46,76 +62,52 @@ class Esaldo_model extends Model
 
     public function save(array $data): void
     {
-        $payload = [
-            'code' => trim((string) ($data['code'] ?? '')),
-            'barcode' => '',
-            'name' => trim((string) ($data['name'] ?? '')),
-            'category' => 'E-SALDO',
-            'description' => trim((string) ($data['description'] ?? '')),
-            'unit_large' => 'Transaksi',
-            'unit_small' => 'Transaksi',
-            'small_unit_qty' => 1,
-            'purchase_price' => (float) ($data['purchase_price'] ?? 0),
-            'purchase_total' => (float) ($data['purchase_price'] ?? 0),
-            'purchase_basis_qty' => 1,
-            'selling_price' => (float) ($data['selling_price'] ?? 0),
-            'profit_percent' => 0,
-            'unit_price' => (float) ($data['selling_price'] ?? 0),
-            'half_price' => 0,
-            'allow_small_sale' => 0,
-            'allow_half_sale' => 0,
-            'promo_qty_1' => 0,
-            'promo_price_1' => 0,
-            'promo_qty_2' => 0,
-            'promo_price_2' => 0,
-            'promo_qty_3' => 0,
-            'promo_price_3' => 0,
-            'promo_qty_4' => 0,
-            'promo_price_4' => 0,
-            'promo_qty_5' => 0,
-            'promo_price_5' => 0,
-            'promo_qty_6' => 0,
-            'promo_price_6' => 0,
-            'stock' => 0,
-            'exp_date' => null,
-        ];
+        $balance = (float) ($data['balance'] ?? 0);
 
         if (!empty($data['id'])) {
-            $sql = "UPDATE items SET
-                code = :code,
-                barcode = :barcode,
-                name = :name,
-                category = :category,
-                description = :description,
-                unit_large = :unit_large,
-                unit_small = :unit_small,
-                small_unit_qty = :small_unit_qty,
-                purchase_price = :purchase_price,
-                purchase_total = :purchase_total,
-                purchase_basis_qty = :purchase_basis_qty,
-                selling_price = :selling_price,
-                profit_percent = :profit_percent,
-                unit_price = :unit_price,
-                half_price = :half_price,
-                allow_small_sale = :allow_small_sale,
-                allow_half_sale = :allow_half_sale,
-                promo_qty_1 = :promo_qty_1,
-                promo_price_1 = :promo_price_1,
-                promo_qty_2 = :promo_qty_2,
-                promo_price_2 = :promo_price_2,
-                promo_qty_3 = :promo_qty_3,
-                promo_price_3 = :promo_price_3,
-                promo_qty_4 = :promo_qty_4,
-                promo_price_4 = :promo_price_4,
-                promo_qty_5 = :promo_qty_5,
-                promo_price_5 = :promo_price_5,
-                promo_qty_6 = :promo_qty_6,
-                promo_price_6 = :promo_price_6,
-                stock = :stock,
-                exp_date = :exp_date
-                WHERE id = :id";
-            $payload['id'] = (int) $data['id'];
+            $sql = "UPDATE items SET selling_price = :balance, unit_price = :balance WHERE id = :id AND category = 'E-SALDO'";
+            $statement = $this->db->prepare($sql);
+            $statement->execute([
+                'balance' => $balance,
+                'id' => (int) $data['id'],
+            ]);
         } else {
+            $code = $this->nextCode();
+            $payload = [
+                'code' => $code,
+                'barcode' => '',
+                'name' => 'Saldo ' . $code,
+                'category' => 'E-SALDO',
+                'description' => '',
+                'unit_large' => 'Transaksi',
+                'unit_small' => 'Transaksi',
+                'small_unit_qty' => 1,
+                'purchase_price' => 0,
+                'purchase_total' => 0,
+                'purchase_basis_qty' => 1,
+                'selling_price' => $balance,
+                'profit_percent' => 0,
+                'unit_price' => $balance,
+                'half_price' => 0,
+                'allow_small_sale' => 0,
+                'allow_half_sale' => 0,
+                'promo_qty_1' => 0,
+                'promo_price_1' => 0,
+                'promo_qty_2' => 0,
+                'promo_price_2' => 0,
+                'promo_qty_3' => 0,
+                'promo_price_3' => 0,
+                'promo_qty_4' => 0,
+                'promo_price_4' => 0,
+                'promo_qty_5' => 0,
+                'promo_price_5' => 0,
+                'promo_qty_6' => 0,
+                'promo_price_6' => 0,
+                'stock' => 0,
+                'exp_date' => null,
+                'created_at' => date('Y-m-d H:i:s'),
+            ];
+
             $sql = "INSERT INTO items (
                 code, barcode, name, category, description, unit_large, unit_small, small_unit_qty,
                 purchase_price, purchase_total, purchase_basis_qty, selling_price, profit_percent, unit_price, half_price,
@@ -129,11 +121,9 @@ class Esaldo_model extends Model
                 :promo_qty_3, :promo_price_3, :promo_qty_4, :promo_price_4, :promo_qty_5, :promo_price_5,
                 :promo_qty_6, :promo_price_6, :stock, :exp_date, :created_at
             )";
-            $payload['created_at'] = date('Y-m-d H:i:s');
+            $statement = $this->db->prepare($sql);
+            $statement->execute($payload);
         }
-
-        $statement = $this->db->prepare($sql);
-        $statement->execute($payload);
     }
 
     public function delete(int $id): bool
