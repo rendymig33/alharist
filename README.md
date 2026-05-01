@@ -1,3 +1,4 @@
+# alharist
 # Kasir Desktop PHP CI3 Style
 
 Starter aplikasi kasir desktop sederhana dengan tampilan minimarket, font Arial, dan penyimpanan lokal memakai SQLite.
