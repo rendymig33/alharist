@@ -34,6 +34,7 @@ class Transaksi_model extends Model
                 {$itemAlias}.line_total - (
                     {$itemAlias}.qty * (
                         CASE
+                            WHEN COALESCE({$masterAlias}.category, '') = 'E-SALDO' THEN COALESCE({$itemAlias}.purchase_price, 0)
                             WHEN COALESCE({$masterAlias}.small_unit_qty, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0) / {$masterAlias}.small_unit_qty
                             WHEN COALESCE({$masterAlias}.purchase_price, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0)
                             ELSE COALESCE({$itemAlias}.purchase_price, 0)
@@ -49,6 +50,7 @@ class Transaksi_model extends Model
         return "
             (
                 CASE
+                    WHEN COALESCE({$masterAlias}.category, '') = 'E-SALDO' THEN COALESCE({$itemAlias}.purchase_price, 0)
                     WHEN COALESCE({$masterAlias}.small_unit_qty, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0) / {$masterAlias}.small_unit_qty
                     WHEN COALESCE({$masterAlias}.purchase_price, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0)
                     ELSE COALESCE({$itemAlias}.purchase_price, 0)
@@ -104,15 +106,18 @@ class Transaksi_model extends Model
             }
         }
 
-        // Kurangi saldo modal untuk e-saldo
-        $modalReduction = 0;
+        // Kurangi saldo e-saldo (dari master e-saldo, bukan vault modal)
+        $esaldoDeductStmt = $this->db->prepare("UPDATE items SET selling_price = selling_price - :amount, unit_price = unit_price - :amount WHERE id = :id AND category = 'E-SALDO'");
         foreach ($payload['items'] as $item) {
             if (!empty($item['is_esaldo'])) {
-                $modalReduction += $item['purchase_price'] * $item['qty'];
+                $deduction = $item['purchase_price'] * $item['qty'];
+                if ($deduction > 0) {
+                    $esaldoDeductStmt->execute([
+                        'amount' => $deduction,
+                        'id' => $item['item_id'],
+                    ]);
+                }
             }
-        }
-        if ($modalReduction > 0) {
-            $this->db->prepare("UPDATE vaults SET balance = balance - :amount WHERE id = 1")->execute(['amount' => $modalReduction]);
         }
 
         if ($payload['payment_type'] === 'Hutang') {
@@ -349,15 +354,18 @@ class Transaksi_model extends Model
             }
         }
 
-        // Kembalikan saldo modal untuk e-saldo
-        $modalReduction = 0;
+        // Kembalikan saldo e-saldo (ke master e-saldo, bukan vault modal)
+        $esaldoRestoreStmt = $this->db->prepare("UPDATE items SET selling_price = selling_price + :amount, unit_price = unit_price + :amount WHERE id = :id AND category = 'E-SALDO'");
         foreach ($saleItems as $item) {
             if (($item['category'] ?? '') === 'E-SALDO') {
-                $modalReduction += $item['purchase_price'] * $item['qty'];
+                $restoration = $item['purchase_price'] * $item['qty'];
+                if ($restoration > 0) {
+                    $esaldoRestoreStmt->execute([
+                        'amount' => $restoration,
+                        'id' => $item['item_id'],
+                    ]);
+                }
             }
-        }
-        if ($modalReduction > 0) {
-            $this->db->prepare("UPDATE vaults SET balance = balance + :amount WHERE id = 1")->execute(['amount' => $modalReduction]);
         }
 
         $debtStatement = $this->db->prepare("SELECT id FROM debts WHERE sale_id = :sale_id");

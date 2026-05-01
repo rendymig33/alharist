@@ -23,6 +23,7 @@ class Dashboard_model extends Model
                 sale_items.line_total - (
                     sale_items.qty * (
                         CASE
+                            WHEN COALESCE(items.category, '') = 'E-SALDO' THEN COALESCE(sale_items.purchase_price, 0)
                             WHEN COALESCE(items.small_unit_qty, 0) > 0 THEN COALESCE(items.purchase_price, 0) / items.small_unit_qty
                             WHEN COALESCE(items.purchase_price, 0) > 0 THEN COALESCE(items.purchase_price, 0)
                             ELSE COALESCE(sale_items.purchase_price, 0)

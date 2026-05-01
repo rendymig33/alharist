@@ -617,22 +617,16 @@ $transactionMode = $transactionMode ?? 'biasa';
                         <div class="item-row item-card" data-search="<?= htmlspecialchars(strtolower(trim(($item['code'] ?? '') . ' ' . ($item['name'] ?? '') . ' ' . ($item['description'] ?? '')))) ?>" data-barcode="">
                             <div class="item-card-head">
                                 <div class="item-card-code"><?= htmlspecialchars((string) $item['code']) ?></div>
-                                <div class="small">Provider: <?= htmlspecialchars((string) ($item['description'] ?? '-')) ?></div>
                                 <div class="item-card-name"><?= htmlspecialchars((string) $item['name']) ?></div>
-                            </div>
-                            <div class="item-card-meta">
-                                <div class="item-price-box">
-                                    <span class="small" style="color:#8a5a00;">Default master</span>
-                                    <strong><?= rupiah((float) ($item['selling_price'] ?? 0)) ?></strong>
-                                </div>
+                                <div class="small">Saldo: <?= rupiah((float) ($item['selling_price'] ?? 0)) ?></div>
                             </div>
                             <div>
                                 <form method="post" class="purchase-form" style="grid-template-columns:1fr 1fr;">
                                     <input type="hidden" name="transaction_mode" value="esaldo">
                                     <input type="hidden" name="action" value="add_esaldo">
                                     <input type="hidden" name="item_id" value="<?= (int) $item['id'] ?>">
-                                    <input type="text" name="manual_buy_price" class="money-inline" placeholder="Modal manual" value="<?= htmlspecialchars(number_format((float) ($item['purchase_price'] ?? 0), 0, ',', '.')) ?>">
-                                    <input type="text" name="manual_sell_price" class="money-inline" placeholder="Jual manual" value="<?= htmlspecialchars(number_format((float) ($item['selling_price'] ?? 0), 0, ',', '.')) ?>">
+                                    <input type="text" name="manual_buy_price" class="money-inline" placeholder="Masukkan Modal" value="">
+                                    <input type="text" name="manual_sell_price" class="money-inline" placeholder="Masukkan Harga Jual" value="">
                                     <button type="submit">Tambah</button>
                                 </form>
                             </div>
