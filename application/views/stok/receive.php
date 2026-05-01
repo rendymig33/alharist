@@ -265,7 +265,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($items as $item): ?>
+                    <?php foreach (($items ?? []) as $item): ?>
                         <?php
                         $isLowStock = !empty($item['low_stock']);
                         $isSelected = (int) ($selectedItem['id'] ?? 0) === (int) ($item['id'] ?? 0);
