@@ -53,7 +53,7 @@
 <div class="card">
     <h3>Saldo Modal</h3>
     <div style="font-size: 24px; font-weight: bold; color: #333; margin: 16px 0;">
-        <?= rupiah($modalBalance) ?>
+        <?= rupiah($modalBalance ?? 0) ?>
     </div>
     <p>Saldo modal ini berkurang sesuai dengan transaksi E-Saldo yang dilakukan.</p>
 </div>
