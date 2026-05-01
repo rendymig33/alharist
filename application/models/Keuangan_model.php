@@ -224,7 +224,7 @@ class Keuangan_model extends Model
                 sales.invoice_no AS notes,
                 'penjualan' AS transaction_type,
                 NULL AS source_vault_id,
-                sale_items.vault_id AS target_vault_id,
+                COALESCE(sale_items.vault_id, sales.vault_id) AS target_vault_id,
                 CASE
                     WHEN sales.payment_type = 'Tunai' THEN 'CASH'
                     WHEN sales.payment_type = 'QRIS' THEN 'QRIS'
@@ -234,8 +234,8 @@ class Keuangan_model extends Model
                 'transaksi' AS source_module
             FROM sale_items
             INNER JOIN sales ON sales.id = sale_items.sale_id
-            LEFT JOIN vaults ON vaults.id = sale_items.vault_id
-            WHERE sale_items.vault_id = :vault_id
+            LEFT JOIN vaults ON vaults.id = COALESCE(sale_items.vault_id, sales.vault_id)
+            WHERE sale_items.vault_id = :vault_id OR sales.vault_id = :vault_id
         ");
         $salesStatement->execute(['vault_id' => $vaultId]);
         $salesRows = $salesStatement->fetchAll(PDO::FETCH_ASSOC);

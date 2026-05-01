@@ -332,7 +332,7 @@ class Transaksi_model extends Model
         }
 
         if (in_array($sale['payment_type'], ['Tunai', 'QRIS'], true)) {
-            $vaultStatement = $this->db->prepare("UPDATE vaults SET balance = balance + :amount WHERE id = :id");
+            $vaultStatement = $this->db->prepare("UPDATE vaults SET balance = balance - :amount WHERE id = :id");
             $vaultTotals = [];
             foreach ($saleItems as $item) {
                 $vaultId = (int) ($item['vault_id'] ?? 0);
