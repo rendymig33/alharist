@@ -27,11 +27,11 @@
     }
 
     .stok-item-table tr.is-low-stock td {
-        color: #b42318;
+        color: #7e0b03;
     }
 
     .stok-item-table tr.is-selected {
-        background: #fff8db;
+        background: #bee8fc;
     }
 
     .stok-pick-btn {

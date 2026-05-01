@@ -171,7 +171,7 @@
     }
 
     @media (max-width: 640px) {
-        .toolbar > div:first-child {
+        .toolbar>div:first-child {
             width: 100%;
         }
 
@@ -284,7 +284,7 @@
             <h3 style="margin-bottom:6px;">Daftar Barang</h3>
             <div class="small">Barang bisa diatur apakah boleh dijual eceran dan setengah atau tidak.</div>
         </div>
-        <div class="badge">Total Item: <?= count($items) ?></div>
+        <div class="badge">Total Item: <?= count($items ?? []) ?></div>
     </div>
 
     <form method="get" class="barang-search">
@@ -312,7 +312,7 @@
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($items as $item): ?>
+                <?php foreach ($items ?? [] as $item): ?>
                     <tr>
                         <td data-label="Kode">
                             <strong><?= htmlspecialchars($item['code']) ?></strong>
@@ -363,14 +363,14 @@
         <form method="post" class="barang-form">
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" value="<?= htmlspecialchars((string) ($editItem['id'] ?? '')) ?>">
-            <input type="hidden" name="code" value="<?= htmlspecialchars((string) $nextCode) ?>">
+            <input type="hidden" name="code" value="<?= htmlspecialchars((string) ($nextCode ?? '')) ?>">
             <input type="hidden" name="update_purchase" id="update_purchase" value="<?= empty($editItem) ? '1' : '0' ?>">
 
             <div class="barang-hero">
                 <div class="form-grid">
                     <div>
                         <div class="small">Kode Barang</div>
-                        <input value="<?= htmlspecialchars((string) $nextCode) ?>" readonly>
+                        <input value="<?= htmlspecialchars((string) ($nextCode ?? '')) ?>" readonly>
                     </div>
                     <div>
                         <div class="small">Barcode</div>
@@ -650,13 +650,13 @@
             document.getElementById('stock-preview').textContent = 'Stok aktif: ' + (stockDisplayReadonly ? stockDisplayReadonly.value : (previewStockTotal + ' ' + unitSmall));
             document.getElementById('stock-total-note').textContent = 'Perubahan stok dilakukan dari modul Receive Item dan Stok Opname.';
             document.getElementById('purchase-preview').textContent = 'Total Harga Beli: ' + rupiah(purchaseReceiptTotal) + ' x ' + purchaseLargeQty + ' = ' + rupiah(totalHargaBeli);
-            document.getElementById('price-preview').textContent = allowSmallSale
-                ? ('Harga Modal Ecer: ' + rupiah(purchasePerPcs) + ' / ' + smallQty + ' = ' + rupiah(modalEcer))
-                : 'Harga Modal Ecer: Tidak dipakai karena barang tidak dijual ecer';
+            document.getElementById('price-preview').textContent = allowSmallSale ?
+                ('Harga Modal Ecer: ' + rupiah(purchasePerPcs) + ' / ' + smallQty + ' = ' + rupiah(modalEcer)) :
+                'Harga Modal Ecer: Tidak dipakai karena barang tidak dijual ecer';
             document.getElementById('profit-note').textContent = 'Profit (satuan Besar): ' + rupiah(selling) + ' - ' + rupiah(purchasePerPcs) + ' = ' + rupiah(profitPerLarge);
-            document.getElementById('profit-small-note').textContent = allowSmallSale
-                ? ('Profit (satuan Kecil): ' + rupiah(unitPriceValue) + ' - ' + rupiah(modalEcer) + ' = ' + rupiah(profitPerSmall))
-                : 'Profit (satuan Kecil): Tidak dipakai karena barang tidak dijual ecer';
+            document.getElementById('profit-small-note').textContent = allowSmallSale ?
+                ('Profit (satuan Kecil): ' + rupiah(unitPriceValue) + ' - ' + rupiah(modalEcer) + ' = ' + rupiah(profitPerSmall)) :
+                'Profit (satuan Kecil): Tidak dipakai karena barang tidak dijual ecer';
             [1, 2, 3, 4, 5, 6].forEach(function(index) {
                 renderPromoNote(index, unitSmall);
             });

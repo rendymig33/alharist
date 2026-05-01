@@ -31,7 +31,7 @@
     }
 
     .stok-item-table tr.is-selected {
-        background: #fff8db;
+        background: #bee8fc;
     }
 
     .stok-pick-btn {
@@ -88,6 +88,7 @@
     }
 
     @media (max-width: 920px) {
+
         .stok-grid,
         .stok-search,
         .stok-summary {
@@ -180,8 +181,8 @@
                 </div>
             </form>
 
-                <div class="opname-history-list">
-                    <div class="section-title" style="margin-bottom:0;">History Koreksi</div>
+            <div class="opname-history-list">
+                <div class="section-title" style="margin-bottom:0;">History Koreksi</div>
                 <?php if (!empty($selectedHistory)): ?>
                     <?php foreach ($selectedHistory as $index => $row): ?>
                         <?php
@@ -250,7 +251,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($items as $item): ?>
+                    <?php foreach (($items ?? []) as $item): ?>
                         <?php
                         $isLowStock = !empty($item['low_stock']);
                         $isSelected = (int) ($selectedItem['id'] ?? 0) === (int) ($item['id'] ?? 0);
