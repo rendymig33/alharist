@@ -22,7 +22,7 @@ class Esaldo_model extends Model
         $keyword = trim($keyword);
 
         if ($keyword !== '') {
-            $sql .= " AND (code LIKE :keyword OR name LIKE :keyword OR description LIKE :keyword)";
+            $sql .= " AND (code LIKE :keyword OR name LIKE :keyword)";
             $params['keyword'] = '%' . $keyword . '%';
         }
 

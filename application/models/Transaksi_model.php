@@ -104,6 +104,17 @@ class Transaksi_model extends Model
             }
         }
 
+        // Kurangi saldo modal untuk e-saldo
+        $modalReduction = 0;
+        foreach ($payload['items'] as $item) {
+            if (!empty($item['is_esaldo'])) {
+                $modalReduction += $item['purchase_price'] * $item['qty'];
+            }
+        }
+        if ($modalReduction > 0) {
+            $this->db->prepare("UPDATE vaults SET balance = balance - :amount WHERE id = 1")->execute(['amount' => $modalReduction]);
+        }
+
         if ($payload['payment_type'] === 'Hutang') {
             $debtStatement = $this->db->prepare("INSERT INTO debts (sale_id, customer_id, total_debt, paid_amount, due_date, status, created_at) VALUES (:sale_id, :customer_id, :total_debt, 0, :due_date, 'Belum Lunas', :created_at)");
             $debtStatement->execute([
@@ -316,7 +327,7 @@ class Transaksi_model extends Model
         }
 
         if (in_array($sale['payment_type'], ['Tunai', 'QRIS'], true)) {
-            $vaultStatement = $this->db->prepare("UPDATE vaults SET balance = balance - :amount WHERE id = :id");
+            $vaultStatement = $this->db->prepare("UPDATE vaults SET balance = balance + :amount WHERE id = :id");
             $vaultTotals = [];
             foreach ($saleItems as $item) {
                 $vaultId = (int) ($item['vault_id'] ?? 0);
@@ -336,6 +347,17 @@ class Transaksi_model extends Model
                     'id' => $vaultId,
                 ]);
             }
+        }
+
+        // Kembalikan saldo modal untuk e-saldo
+        $modalReduction = 0;
+        foreach ($saleItems as $item) {
+            if (($item['category'] ?? '') === 'E-SALDO') {
+                $modalReduction += $item['purchase_price'] * $item['qty'];
+            }
+        }
+        if ($modalReduction > 0) {
+            $this->db->prepare("UPDATE vaults SET balance = balance + :amount WHERE id = 1")->execute(['amount' => $modalReduction]);
         }
 
         $debtStatement = $this->db->prepare("SELECT id FROM debts WHERE sale_id = :sale_id");
