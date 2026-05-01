@@ -1,4 +1,8 @@
 <?php
+$cart = $cart ?? [];
+$vaults = $vaults ?? [];
+$items = $items ?? [];
+$customers = $customers ?? [];
 $subtotal = array_sum(array_column($cart, 'line_total'));
 $profit = array_sum(array_column($cart, 'line_profit'));
 $transactionMode = $transactionMode ?? 'biasa';
@@ -197,6 +201,7 @@ $transactionMode = $transactionMode ?? 'biasa';
     }
 
     @media (max-width: 920px) {
+
         .transaction-head-grid,
         .transaction-main-grid {
             grid-template-columns: 1fr;
@@ -212,16 +217,16 @@ $transactionMode = $transactionMode ?? 'biasa';
             gap: 0;
         }
 
-        .transaction-head-grid > div {
+        .transaction-head-grid>div {
             border-right: none !important;
             border-bottom: 1px solid #333;
         }
 
-        .transaction-head-grid > div:last-child {
+        .transaction-head-grid>div:last-child {
             border-bottom: none;
         }
 
-        .transaction-main-grid > div:first-child {
+        .transaction-main-grid>div:first-child {
             border-right: none !important;
             border-bottom: 1px solid #e2e4ea;
         }
@@ -437,67 +442,78 @@ $transactionMode = $transactionMode ?? 'biasa';
 
             <div class="transaction-table-wrap">
                 <table class="transaction-card-table" style="margin-top:14px;">
-                    <thead><tr><th>No</th><th>Nama Item</th><th>Qty</th><th>Satuan</th><th>Harga</th><th>Subtotal</th><th>Masuk Ke</th><th></th></tr></thead>
-                    <tbody>
-                    <?php foreach ($cart as $index => $row): ?>
+                    <thead>
                         <tr>
-                            <td data-label="No"><span class="transaction-card-index"><?= $index + 1 ?></span></td>
-                            <td data-label="Nama Item">
-                                <?= htmlspecialchars($row['name']) ?>
-                                <?php if (!empty($row['promo_label'])): ?>
-                                    <div class="small" style="margin-top:4px; color:#b54708;"><?= htmlspecialchars((string) $row['promo_label']) ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td data-label="Qty"><?= format_qty((float) ($row['display_qty'] ?? $row['qty'])) ?></td>
-                            <td data-label="Satuan"><?= htmlspecialchars((string) ($row['purchase_label'] ?? ($row['stock_display'] ?? ''))) ?></td>
-                            <td data-label="Harga"><?= rupiah((float) $row['selling_price']) ?></td>
-                            <td data-label="Subtotal">
-                                <div class="transaction-inline-total">
-                                    <span>Subtotal</span>
-                                    <strong><?= rupiah((float) $row['line_total']) ?></strong>
-                                </div>
-                            </td>
-                            <td data-label="Masuk Ke" style="min-width:220px;">
-                                <form method="post">
-                                    <input type="hidden" name="transaction_mode" value="<?= htmlspecialchars((string) $transactionMode) ?>">
-                                    <input type="hidden" name="action" value="update_item_vault">
-                                    <input type="hidden" name="index" value="<?= (int) $index ?>">
-                                    <select name="vault_id" onchange="this.form.submit()">
-                                        <option value="0">Pilih Dana / Berangkas</option>
-                                        <?php foreach ($vaults as $vault): ?>
-                                            <option value="<?= (int) $vault['id'] ?>" <?= (int) ($row['vault_id'] ?? 0) === (int) $vault['id'] ? 'selected' : '' ?>>
-                                                <?= htmlspecialchars((string) ($vault['bank_name'] ?: 'Vault')) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </form>
-                            </td>
-                            <td data-label="Aksi">
-                                <form method="post">
-                                    <input type="hidden" name="transaction_mode" value="<?= htmlspecialchars((string) $transactionMode) ?>">
-                                    <input type="hidden" name="action" value="remove_item">
-                                    <input type="hidden" name="index" value="<?= (int) $index ?>">
-                                    <button class="btn-secondary" type="submit">X</button>
-                                </form>
-                            </td>
+                            <th>No</th>
+                            <th>Nama Item</th>
+                            <th>Qty</th>
+                            <th>Satuan</th>
+                            <th>Harga</th>
+                            <th>Subtotal</th>
+                            <th>Masuk Ke</th>
+                            <th></th>
                         </tr>
-                    <?php endforeach; ?>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($cart as $index => $row): ?>
+                            <tr>
+                                <td data-label="No"><span class="transaction-card-index"><?= $index + 1 ?></span></td>
+                                <td data-label="Nama Item">
+                                    <?= htmlspecialchars($row['name']) ?>
+                                    <?php if (!empty($row['promo_label'])): ?>
+                                        <div class="small" style="margin-top:4px; color:#b54708;"><?= htmlspecialchars((string) $row['promo_label']) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td data-label="Qty"><?= format_qty((float) ($row['display_qty'] ?? $row['qty'])) ?></td>
+                                <td data-label="Satuan"><?= htmlspecialchars((string) ($row['purchase_label'] ?? ($row['stock_display'] ?? ''))) ?></td>
+                                <td data-label="Harga"><?= rupiah((float) $row['selling_price']) ?></td>
+                                <td data-label="Subtotal">
+                                    <div class="transaction-inline-total">
+                                        <span>Subtotal</span>
+                                        <strong><?= rupiah((float) $row['line_total']) ?></strong>
+                                    </div>
+                                </td>
+                                <td data-label="Masuk Ke" style="min-width:220px;">
+                                    <form method="post">
+                                        <input type="hidden" name="transaction_mode" value="<?= htmlspecialchars((string) $transactionMode) ?>">
+                                        <input type="hidden" name="action" value="update_item_vault">
+                                        <input type="hidden" name="index" value="<?= (int) $index ?>">
+                                        <select name="vault_id" onchange="this.form.submit()">
+                                            <option value="0">Pilih Dana / Berangkas</option>
+                                            <?php foreach ($vaults as $vault): ?>
+                                                <option value="<?= (int) $vault['id'] ?>" <?= (int) ($row['vault_id'] ?? 0) === (int) $vault['id'] ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars((string) ($vault['bank_name'] ?: 'Vault')) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td data-label="Aksi">
+                                    <form method="post">
+                                        <input type="hidden" name="transaction_mode" value="<?= htmlspecialchars((string) $transactionMode) ?>">
+                                        <input type="hidden" name="action" value="remove_item">
+                                        <input type="hidden" name="index" value="<?= (int) $index ?>">
+                                        <button class="btn-secondary" type="submit">X</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         </div>
         <div class="transaction-payment-panel">
             <div class="transaction-summary-box">
-            <div class="small">Total</div>
-            <div style="font-size:54px; font-weight:700; text-align:right; margin:12px 0 18px;"><?= rupiah($subtotal) ?></div>
-            <div class="transaction-payment-grid">
-                <div class="small">Uang Bayar</div>
-                <input type="text" id="cash_paid_display" inputmode="numeric" autocomplete="off" placeholder="0" style="font-size:34px; font-weight:700; text-align:right; height:70px;">
-                <input type="hidden" id="cash_paid" name="cash_paid" form="checkout-form">
-                <div class="small">Kembalian</div>
-                <input type="text" id="change_amount" placeholder="0" readonly style="font-size:34px; font-weight:700; text-align:right; height:70px; background:#fff;">
-                <button type="button" class="btn-green" id="confirm-checkout">BAYAR</button>
-            </div>
+                <div class="small">Total</div>
+                <div style="font-size:54px; font-weight:700; text-align:right; margin:12px 0 18px;"><?= rupiah($subtotal) ?></div>
+                <div class="transaction-payment-grid">
+                    <div class="small">Uang Bayar</div>
+                    <input type="text" id="cash_paid_display" inputmode="numeric" autocomplete="off" placeholder="0" style="font-size:34px; font-weight:700; text-align:right; height:70px;">
+                    <input type="hidden" id="cash_paid" name="cash_paid" form="checkout-form">
+                    <div class="small">Kembalian</div>
+                    <input type="text" id="change_amount" placeholder="0" readonly style="font-size:34px; font-weight:700; text-align:right; height:70px; background:#fff;">
+                    <button type="button" class="btn-green" id="confirm-checkout">BAYAR</button>
+                </div>
             </div>
         </div>
     </div>
@@ -551,78 +567,77 @@ $transactionMode = $transactionMode ?? 'biasa';
         <div class="item-modal-table-wrap">
             <div class="item-grid">
                 <?php if ($transactionMode === 'biasa'): ?>
-                <?php foreach ($items as $item): ?>
-                    <div class="item-row item-card" data-search="<?= htmlspecialchars(strtolower(trim(($item['code'] ?? '') . ' ' . ($item['barcode'] ?? '') . ' ' . ($item['name'] ?? '')))) ?>" data-barcode="<?= htmlspecialchars((string) ($item['barcode'] ?? '')) ?>">
-                        <div class="item-card-head">
-                            <div class="item-card-code"><?= htmlspecialchars($item['code']) ?></div>
-                            <?php if (!empty($item['barcode'])): ?>
-                                <div class="small">Barcode: <?= htmlspecialchars((string) $item['barcode']) ?></div>
-                            <?php endif; ?>
-                            <div class="item-card-name">
-                            <?= htmlspecialchars($item['name']) ?>
-                            </div>
-                            <?php for ($i = 1; $i <= 3; $i++): ?>
-                                <?php $promoQty = (int) ($item['promo_qty_' . $i] ?? 0); ?>
-                                <?php $promoPrice = (float) ($item['promo_price_' . $i] ?? 0); ?>
-                                <?php if ($promoQty > 0 && $promoPrice > 0): ?>
-                                    <div class="small" style="margin-top:4px; color:#b54708;">Promo <?= $promoQty ?> <?= htmlspecialchars((string) $item['unit_small']) ?> = <?= rupiah($promoPrice) ?></div>
+                    <?php foreach ($items as $item): ?>
+                        <div class="item-row item-card" data-search="<?= htmlspecialchars(strtolower(trim(($item['code'] ?? '') . ' ' . ($item['barcode'] ?? '') . ' ' . ($item['name'] ?? '')))) ?>" data-barcode="<?= htmlspecialchars((string) ($item['barcode'] ?? '')) ?>">
+                            <div class="item-card-head">
+                                <div class="item-card-code"><?= htmlspecialchars($item['code']) ?></div>
+                                <?php if (!empty($item['barcode'])): ?>
+                                    <div class="small">Barcode: <?= htmlspecialchars((string) $item['barcode']) ?></div>
                                 <?php endif; ?>
-                            <?php endfor; ?>
-                        </div>
-                        <div class="item-card-meta">
-                            <div><span class="item-stock-badge"><?= htmlspecialchars((string) ($item['stock_display'] ?? format_qty((float) $item['stock']))) ?></span></div>
-                            <div class="item-price-box">
-                                <span class="small" style="color:#8a5a00;">Harga aktif</span>
-                                <strong class="sale-price" data-base-price="<?= htmlspecialchars((string) $item['selling_price']) ?>" data-unit-price="<?= htmlspecialchars((string) $item['unit_price']) ?>" data-half-price="<?= htmlspecialchars((string) ($item['half_price'] ?? 0)) ?>"><?= rupiah((float) $item['selling_price']) ?></strong>
+                                <div class="item-card-name">
+                                    <?= htmlspecialchars($item['name']) ?>
+                                </div>
+                                <?php for ($i = 1; $i <= 3; $i++): ?>
+                                    <?php $promoQty = (int) ($item['promo_qty_' . $i] ?? 0); ?>
+                                    <?php $promoPrice = (float) ($item['promo_price_' . $i] ?? 0); ?>
+                                    <?php if ($promoQty > 0 && $promoPrice > 0): ?>
+                                        <div class="small" style="margin-top:4px; color:#b54708;">Promo <?= $promoQty ?> <?= htmlspecialchars((string) $item['unit_small']) ?> = <?= rupiah($promoPrice) ?></div>
+                                    <?php endif; ?>
+                                <?php endfor; ?>
+                            </div>
+                            <div class="item-card-meta">
+                                <div><span class="item-stock-badge"><?= htmlspecialchars((string) ($item['stock_display'] ?? format_qty((float) $item['stock']))) ?></span></div>
+                                <div class="item-price-box">
+                                    <span class="small" style="color:#8a5a00;">Harga aktif</span>
+                                    <strong class="sale-price" data-base-price="<?= htmlspecialchars((string) $item['selling_price']) ?>" data-unit-price="<?= htmlspecialchars((string) $item['unit_price']) ?>" data-half-price="<?= htmlspecialchars((string) ($item['half_price'] ?? 0)) ?>"><?= rupiah((float) $item['selling_price']) ?></strong>
+                                </div>
+                            </div>
+                            <div>
+                                <form method="post" class="purchase-form">
+                                    <input type="hidden" name="transaction_mode" value="biasa">
+                                    <input type="hidden" name="action" value="add_item">
+                                    <input type="hidden" name="item_id" value="<?= (int) $item['id'] ?>">
+                                    <select name="purchase_mode" class="purchase-mode">
+                                        <option value="besar"><?= htmlspecialchars((string) $item['unit_large']) ?></option>
+                                        <?php if (!empty($item['allow_small_sale'])): ?>
+                                            <option value="eceran">1 <?= htmlspecialchars((string) $item['unit_small']) ?></option>
+                                        <?php endif; ?>
+                                        <?php if (!empty($item['allow_half_sale'])): ?>
+                                            <option value="setengah">Setengah</option>
+                                        <?php endif; ?>
+                                    </select>
+                                    <input type="number" name="qty" value="1" min="1" inputmode="numeric">
+                                    <button type="submit">Tambah</button>
+                                </form>
                             </div>
                         </div>
-                        <div>
-                            <form method="post" class="purchase-form">
-                                <input type="hidden" name="transaction_mode" value="biasa">
-                                <input type="hidden" name="action" value="add_item">
-                                <input type="hidden" name="item_id" value="<?= (int) $item['id'] ?>">
-                                <select name="purchase_mode" class="purchase-mode">
-                                    <option value="besar"><?= htmlspecialchars((string) $item['unit_large']) ?></option>
-                                    <?php if (!empty($item['allow_small_sale'])): ?>
-                                        <option value="eceran">1 <?= htmlspecialchars((string) $item['unit_small']) ?></option>
-                                    <?php endif; ?>
-                                    <?php if (!empty($item['allow_half_sale'])): ?>
-                                        <option value="setengah">Setengah</option>
-                                    <?php endif; ?>
-                                </select>
-                                <input type="number" name="qty" value="1" min="1" inputmode="numeric">
-                                <button type="submit">Tambah</button>
-                            </form>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
                 <?php else: ?>
-                <?php foreach (($esaldoItems ?? []) as $item): ?>
-                    <div class="item-row item-card" data-search="<?= htmlspecialchars(strtolower(trim(($item['code'] ?? '') . ' ' . ($item['name'] ?? '') . ' ' . ($item['description'] ?? '')))) ?>" data-barcode="">
-                        <div class="item-card-head">
-                            <div class="item-card-code"><?= htmlspecialchars((string) $item['code']) ?></div>
-                            <div class="small">Provider: <?= htmlspecialchars((string) ($item['description'] ?? '-')) ?></div>
-                            <div class="item-card-name"><?= htmlspecialchars((string) $item['name']) ?></div>
-                        </div>
-                        <div class="item-card-meta">
-                            <div class="item-price-box">
-                                <span class="small" style="color:#8a5a00;">Default master</span>
-                                <strong><?= rupiah((float) ($item['selling_price'] ?? 0)) ?></strong>
+                    <?php foreach (($esaldoItems ?? []) as $item): ?>
+                        <div class="item-row item-card" data-search="<?= htmlspecialchars(strtolower(trim(($item['code'] ?? '') . ' ' . ($item['name'] ?? '') . ' ' . ($item['description'] ?? '')))) ?>" data-barcode="">
+                            <div class="item-card-head">
+                                <div class="item-card-code"><?= htmlspecialchars((string) $item['code']) ?></div>
+                                <div class="small">Provider: <?= htmlspecialchars((string) ($item['description'] ?? '-')) ?></div>
+                                <div class="item-card-name"><?= htmlspecialchars((string) $item['name']) ?></div>
+                            </div>
+                            <div class="item-card-meta">
+                                <div class="item-price-box">
+                                    <span class="small" style="color:#8a5a00;">Default master</span>
+                                    <strong><?= rupiah((float) ($item['selling_price'] ?? 0)) ?></strong>
+                                </div>
+                            </div>
+                            <div>
+                                <form method="post" class="purchase-form" style="grid-template-columns:1fr 1fr;">
+                                    <input type="hidden" name="transaction_mode" value="esaldo">
+                                    <input type="hidden" name="action" value="add_esaldo">
+                                    <input type="hidden" name="item_id" value="<?= (int) $item['id'] ?>">
+                                    <input type="text" name="manual_buy_price" class="money-inline" placeholder="Modal manual" value="<?= htmlspecialchars(number_format((float) ($item['purchase_price'] ?? 0), 0, ',', '.')) ?>">
+                                    <input type="text" name="manual_sell_price" class="money-inline" placeholder="Jual manual" value="<?= htmlspecialchars(number_format((float) ($item['selling_price'] ?? 0), 0, ',', '.')) ?>">
+                                    <button type="submit">Tambah</button>
+                                </form>
                             </div>
                         </div>
-                        <div>
-                            <form method="post" class="purchase-form" style="grid-template-columns:1fr 1fr;">
-                                <input type="hidden" name="transaction_mode" value="esaldo">
-                                <input type="hidden" name="action" value="add_esaldo">
-                                <input type="hidden" name="item_id" value="<?= (int) $item['id'] ?>">
-                                <input type="text" name="target_number" placeholder="No tujuan / pelanggan">
-                                <input type="text" name="manual_buy_price" class="money-inline" placeholder="Modal manual" value="<?= htmlspecialchars(number_format((float) ($item['purchase_price'] ?? 0), 0, ',', '.')) ?>">
-                                <input type="text" name="manual_sell_price" class="money-inline" placeholder="Jual manual" value="<?= htmlspecialchars(number_format((float) ($item['selling_price'] ?? 0), 0, ',', '.')) ?>">
-                                <button type="submit">Tambah</button>
-                            </form>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -641,7 +656,7 @@ $transactionMode = $transactionMode ?? 'biasa';
         }
     }
 
-    (function () {
+    (function() {
         function rupiah(value) {
             return 'Rp ' + Math.round(value || 0).toLocaleString('id-ID');
         }
@@ -674,7 +689,7 @@ $transactionMode = $transactionMode ?? 'biasa';
             }
 
             let matchedCard = null;
-            document.querySelectorAll('.item-row').forEach(function (row) {
+            document.querySelectorAll('.item-row').forEach(function(row) {
                 const barcode = String(row.dataset.barcode || '').trim();
                 const matched = barcode !== '' && barcode === normalized;
                 row.style.display = matched || (itemSearch && String(itemSearch.value || '').trim() === '' ? '' : row.style.display);
@@ -704,7 +719,7 @@ $transactionMode = $transactionMode ?? 'biasa';
 
         function applyBarcodeFilter(keyword) {
             const normalized = String(keyword || '').toLowerCase().trim();
-            document.querySelectorAll('.item-row').forEach(function (row) {
+            document.querySelectorAll('.item-row').forEach(function(row) {
                 const matched = normalized === '' || (row.dataset.search || '').includes(normalized);
                 row.style.display = matched ? '' : 'none';
             });
@@ -731,7 +746,9 @@ $transactionMode = $transactionMode ?? 'biasa';
 
                 scannerStream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        facingMode: { ideal: 'environment' }
+                        facingMode: {
+                            ideal: 'environment'
+                        }
                     },
                     audio: false
                 });
@@ -739,7 +756,7 @@ $transactionMode = $transactionMode ?? 'biasa';
                 scannerVideo.srcObject = scannerStream;
                 await scannerVideo.play();
 
-                scannerTimer = window.setInterval(async function () {
+                scannerTimer = window.setInterval(async function() {
                     if (!barcodeDetector || scannerVideo.readyState < 2) {
                         return;
                     }
@@ -755,8 +772,7 @@ $transactionMode = $transactionMode ?? 'biasa';
                             stopBarcodeScanner();
                             submitItemByBarcode(firstCode);
                         }
-                    } catch (error) {
-                    }
+                    } catch (error) {}
                 }, 600);
             } catch (error) {
                 stopBarcodeScanner();
@@ -777,7 +793,7 @@ $transactionMode = $transactionMode ?? 'biasa';
             }
 
             if (scannerStream) {
-                scannerStream.getTracks().forEach(function (track) {
+                scannerStream.getTracks().forEach(function(track) {
                     track.stop();
                 });
                 scannerStream = null;
@@ -788,7 +804,7 @@ $transactionMode = $transactionMode ?? 'biasa';
             }
         };
 
-        document.querySelectorAll('.purchase-form').forEach(function (form) {
+        document.querySelectorAll('.purchase-form').forEach(function(form) {
             const select = form.querySelector('.purchase-mode');
             const card = form.closest('.item-card');
             const priceNode = card ? card.querySelector('.sale-price') : null;
@@ -815,11 +831,11 @@ $transactionMode = $transactionMode ?? 'biasa';
         });
 
         if (itemSearch) {
-            itemSearch.addEventListener('input', function () {
+            itemSearch.addEventListener('input', function() {
                 applyBarcodeFilter(this.value);
             });
 
-            itemSearch.addEventListener('keydown', function (event) {
+            itemSearch.addEventListener('keydown', function(event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
                     submitItemByBarcode(this.value);
@@ -828,11 +844,11 @@ $transactionMode = $transactionMode ?? 'biasa';
         }
 
         if (barcodeQuickInput) {
-            barcodeQuickInput.addEventListener('input', function () {
+            barcodeQuickInput.addEventListener('input', function() {
                 applyBarcodeFilter(this.value);
             });
 
-            barcodeQuickInput.addEventListener('keydown', function (event) {
+            barcodeQuickInput.addEventListener('keydown', function(event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
                     if (!submitItemByBarcode(this.value)) {
@@ -855,13 +871,13 @@ $transactionMode = $transactionMode ?? 'biasa';
                 setScanStatus('Mode lokal terdeteksi. Gunakan input barcode manual di kolom sebelah tombol Pilih Barang.');
             }
 
-            openScannerBtn.addEventListener('click', function () {
+            openScannerBtn.addEventListener('click', function() {
                 startBarcodeScanner();
             });
         }
 
         if (closeScannerBtn) {
-            closeScannerBtn.addEventListener('click', function () {
+            closeScannerBtn.addEventListener('click', function() {
                 stopBarcodeScanner();
                 setScanStatus('Scanner ditutup.');
             });
@@ -886,8 +902,8 @@ $transactionMode = $transactionMode ?? 'biasa';
             return digits === '' ? '' : Number(digits).toLocaleString('id-ID');
         }
 
-        document.querySelectorAll('.money-inline').forEach(function (input) {
-            input.addEventListener('input', function () {
+        document.querySelectorAll('.money-inline').forEach(function(input) {
+            input.addEventListener('input', function() {
                 this.value = formatInputNumber(this.value);
             });
         });
@@ -929,16 +945,16 @@ $transactionMode = $transactionMode ?? 'biasa';
                 headerPaymentLabel.textContent = 'Termin: ' + paymentType;
             }
             if (headerCustomerLabel) {
-                const customerText = isDebt && customerSelect && customerSelect.selectedIndex > 0
-                    ? customerSelect.options[customerSelect.selectedIndex].text
-                    : 'UMUM';
+                const customerText = isDebt && customerSelect && customerSelect.selectedIndex > 0 ?
+                    customerSelect.options[customerSelect.selectedIndex].text :
+                    'UMUM';
                 headerCustomerLabel.textContent = 'Customer: ' + customerText;
             }
             updateChange();
         }
 
         if (cashPaid && cashPaidDisplay && changeAmount) {
-            cashPaidDisplay.addEventListener('input', function () {
+            cashPaidDisplay.addEventListener('input', function() {
                 const raw = this.value.replace(/[^\d]/g, '');
                 cashPaid.value = raw;
                 this.value = formatInputNumber(raw);
@@ -958,7 +974,7 @@ $transactionMode = $transactionMode ?? 'biasa';
         syncCheckoutMode();
 
         if (confirmCheckout && checkoutForm) {
-            confirmCheckout.addEventListener('click', function () {
+            confirmCheckout.addEventListener('click', function() {
                 const paymentType = paymentTypeSelect ? paymentTypeSelect.value : 'Tunai';
                 const paid = parseFloat(cashPaid.value || '0');
                 const change = Math.max(0, paid - subtotal);
@@ -967,9 +983,9 @@ $transactionMode = $transactionMode ?? 'biasa';
                     customerSelect.focus();
                     return;
                 }
-                const summary = paymentType === 'Hutang'
-                    ? 'Total belanja: ' + rupiah(subtotal) + '\nPembayaran: Hutang\nPelanggan: ' + (customerSelect && customerSelect.selectedIndex > 0 ? customerSelect.options[customerSelect.selectedIndex].text : '-') + '\n\nLanjut simpan transaksi?'
-                    : 'Total belanja: ' + rupiah(subtotal) + '\nUang bayar: ' + rupiah(paid) + '\nKembalian: ' + rupiah(change) + '\n\nLanjut simpan transaksi?';
+                const summary = paymentType === 'Hutang' ?
+                    'Total belanja: ' + rupiah(subtotal) + '\nPembayaran: Hutang\nPelanggan: ' + (customerSelect && customerSelect.selectedIndex > 0 ? customerSelect.options[customerSelect.selectedIndex].text : '-') + '\n\nLanjut simpan transaksi?' :
+                    'Total belanja: ' + rupiah(subtotal) + '\nUang bayar: ' + rupiah(paid) + '\nKembalian: ' + rupiah(change) + '\n\nLanjut simpan transaksi?';
                 if (window.confirm(summary)) {
                     checkoutForm.submit();
                 }
