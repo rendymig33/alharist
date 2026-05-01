@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= htmlspecialchars($title ?? $config['app_name']) ?></title>
+    <title><?= htmlspecialchars($title ?? ($config['app_name'] ?? 'App')) ?></title>
     <style>
         :root {
             --red: #d71920;
@@ -400,6 +400,7 @@
         }
 
         @media (max-width: 920px) {
+
             .app,
             .two-col,
             .transaction-layout,
@@ -573,6 +574,7 @@
         <aside class="sidebar" id="app-sidebar">
             <div class="brand">TOKO AL-HARIST</div>
             <nav class="menu">
+                <?php $currentRoute = $_GET['route'] ?? ''; ?>
                 <a class="<?= active_menu('dashboard', $currentRoute) ?>" href="index.php?route=dashboard">Dashboard</a>
                 <a class="<?= active_menu('barang', $currentRoute) ?>" href="index.php?route=barang">Master Barang</a>
                 <a class="<?= active_menu('esaldo', $currentRoute) ?>" href="index.php?route=esaldo">Master E-Saldo</a>
@@ -590,7 +592,7 @@
             <div class="topbar">
                 <div class="topbar-header">
                     <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="Buka menu">Menu</button>
-                    <div style="font-size:22px;font-weight:700; flex:1;"><?= htmlspecialchars($title ?? $config['app_name']) ?></div>
+                    <div style="font-size:22px;font-weight:700; flex:1;"><?= htmlspecialchars($title ?? 'TOKO AL-HARIST') ?></div>
                 </div>
                 <div class="small">Toko Al-Harist | Jl. Raya Serang Km.32 RT.09/RW.06 Ds. Sumur Bandung Kec. Jayanti</div>
                 <div class="small"><?= date('d-m-Y H:i') ?></div>

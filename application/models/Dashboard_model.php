@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 class Dashboard_model extends Model
 {
-    private function modalVaultBalance(): float
+    public function modalVaultBalance(): float
     {
         $statement = $this->db->prepare("
             SELECT COALESCE(balance, 0)
