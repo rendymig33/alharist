@@ -9,4 +9,3 @@ $model = new Dashboard_model($basePath, $config);
 
 $summary = $model->summary();
 echo "Vault balance: " . $summary['vault'] . "\n";
-?>
