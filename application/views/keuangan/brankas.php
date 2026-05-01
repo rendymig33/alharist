@@ -236,7 +236,6 @@
                 <div class="small" style="margin-bottom:14px;">Saldo aktif pada brankas ini.</div>
                 <div class="action-row">
                     <button type="button" class="btn btn-secondary" onclick="toggleVaultTransactionModal(<?= (int) $vault['id'] ?>, true)">Transaksi</button>
-                    <button type="button" class="btn btn-info" onclick="openTambahSaldo(<?= (int) $vault['id'] ?>)">Tambah Saldo</button>
                     <a class="btn btn-secondary" href="index.php?route=keuangan/brankas&edit=<?= (int) $vault['id'] ?>">Edit</a>
                 </div>
             </div>

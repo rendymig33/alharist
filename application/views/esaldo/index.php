@@ -411,6 +411,21 @@
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" value="<?= htmlspecialchars((string) ($editEsaldo['id'] ?? '')) ?>">
 
+            <div class="esaldo-input-group" style="margin-bottom: 16px;">
+                <label for="esaldo-name">Nama / Keterangan</label>
+                <div class="input-wrap">
+                    <input
+                        type="text"
+                        id="esaldo-name"
+                        name="name"
+                        placeholder="Contoh: Saldo BCA / Provider XYZ"
+                        required
+                        autocomplete="off"
+                        style="padding-left: 14px;"
+                        value="<?= htmlspecialchars((string) ($editEsaldo['name'] ?? '')) ?>">
+                </div>
+            </div>
+
             <div class="esaldo-input-group">
                 <label for="esaldo-balance">Nominal Saldo</label>
                 <div class="input-wrap">
@@ -451,6 +466,7 @@
         <thead>
             <tr>
                 <th style="text-align:center;">No</th>
+                <th>Keterangan</th>
                 <th>Saldo</th>
                 <th>Tanggal</th>
                 <th>Aksi</th>
@@ -462,6 +478,7 @@
                 foreach ($esaldos as $item): ?>
                     <tr>
                         <td class="td-no" data-label="No"><?= $no++ ?></td>
+                        <td class="td-name" data-label="Keterangan"><strong><?= htmlspecialchars((string) ($item['name'] ?? 'E-Saldo')) ?></strong></td>
                         <td class="td-saldo" data-label="Saldo"><?= rupiah((float) $item['balance']) ?></td>
                         <td class="td-date" data-label="Tanggal"><?= htmlspecialchars((string) ($item['created_at'] ?? '-')) ?></td>
                         <td class="td-aksi" data-label="Aksi">

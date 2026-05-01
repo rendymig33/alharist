@@ -1,1 +1,1 @@
-cart|a:0:{}transaction_mode|s:6:"esaldo";
+cart|a:1:{i:0;a:12:{s:7:"item_id";i:96;s:8:"vault_id";i:1;s:4:"name";s:16:"KECAP SEDAP 2000";s:3:"qty";i:2;s:11:"display_qty";i:2;s:13:"stock_display";s:5:"2 Pcs";s:14:"purchase_label";s:3:"Pcs";s:11:"promo_label";s:0:"";s:14:"purchase_price";d:0;s:13:"selling_price";d:0;s:10:"line_total";d:0;s:11:"line_profit";d:0;}}transaction_mode|s:5:"biasa";

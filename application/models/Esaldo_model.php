@@ -18,7 +18,7 @@ class Esaldo_model extends Model
 
     public function allBalances(): array
     {
-        $sql = "SELECT id, code, selling_price AS balance, created_at FROM items WHERE category = 'E-SALDO' ORDER BY id DESC";
+        $sql = "SELECT id, code, name, selling_price AS balance, created_at FROM items WHERE category = 'E-SALDO' ORDER BY id DESC";
         $statement = $this->db->prepare($sql);
         $statement->execute();
         return $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -26,7 +26,7 @@ class Esaldo_model extends Model
 
     public function findBalance(int $id): array|false
     {
-        $statement = $this->db->prepare("SELECT id, code, selling_price AS balance, created_at FROM items WHERE id = :id AND category = 'E-SALDO'");
+        $statement = $this->db->prepare("SELECT id, code, name, selling_price AS balance, created_at FROM items WHERE id = :id AND category = 'E-SALDO'");
         $statement->execute(['id' => $id]);
         return $statement->fetch(PDO::FETCH_ASSOC);
     }
@@ -63,11 +63,13 @@ class Esaldo_model extends Model
     public function save(array $data): void
     {
         $balance = (float) ($data['balance'] ?? 0);
+        $name = trim((string) ($data['name'] ?? 'E-Saldo'));
 
         if (!empty($data['id'])) {
-            $sql = "UPDATE items SET selling_price = :balance, unit_price = :balance WHERE id = :id AND category = 'E-SALDO'";
+            $sql = "UPDATE items SET name = :name, selling_price = :balance, unit_price = :balance WHERE id = :id AND category = 'E-SALDO'";
             $statement = $this->db->prepare($sql);
             $statement->execute([
+                'name' => $name,
                 'balance' => $balance,
                 'id' => (int) $data['id'],
             ]);
@@ -76,7 +78,7 @@ class Esaldo_model extends Model
             $payload = [
                 'code' => $code,
                 'barcode' => '',
-                'name' => 'Saldo ' . $code,
+                'name' => $name,
                 'category' => 'E-SALDO',
                 'description' => '',
                 'unit_large' => 'Transaksi',

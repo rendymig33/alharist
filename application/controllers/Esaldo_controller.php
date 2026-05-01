@@ -17,8 +17,11 @@ class Esaldo_controller extends Controller
             }
 
             $balance = unformat_number((string) post('balance'));
+            $name = trim((string) post('name'));
+
             $model->save([
                 'id' => post('id'),
+                'name' => $name !== '' ? $name : 'E-Saldo',
                 'balance' => $balance,
             ]);
 
