@@ -181,7 +181,7 @@
                     <div>
                         <div class="small">Harga Beli di Struk</div>
                         <input type="text" class="money-input" name="purchase_price" placeholder="Harga beli per satuan besar" required inputmode="numeric">
-                        <div class="small" style="margin-top:4px;">Harga beli Struk: <?= rupiah((float) ($selectedItem[''] ?? 0)) ?></div>
+                        <div class="small" style="margin-top:4px;">Harga beli Struk: <?= rupiah((float) ($selectedItem['purchase_price'] ?? 0)) ?></div>
                     </div>
                     <div>
                         <div class="small">Catatan</div>
