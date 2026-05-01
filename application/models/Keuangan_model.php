@@ -13,7 +13,7 @@ class Keuangan_model extends Model
         $statement = $this->db->prepare("
             SELECT *
             FROM vaults
-            WHERE bank_name LIKE :keyword OR account_name LIKE :keyword
+            WHERE bank_name LIKE :keyword
             ORDER BY id DESC
         ");
         $statement->execute(['keyword' => '%' . $keyword . '%']);
@@ -30,18 +30,16 @@ class Keuangan_model extends Model
     public function saveVault(array $data): void
     {
         if (!empty($data['id'])) {
-            $sql = "UPDATE vaults SET bank_name=:bank_name, account_name=:account_name, balance=:balance WHERE id=:id";
+            $sql = "UPDATE vaults SET bank_name=:bank_name, balance=:balance WHERE id=:id";
             $params = [
                 'id' => $data['id'],
                 'bank_name' => $data['bank_name'],
-                'account_name' => $data['account_name'],
                 'balance' => $data['balance'],
             ];
         } else {
-            $sql = "INSERT INTO vaults (bank_name, account_name, balance, created_at) VALUES (:bank_name, :account_name, :balance, :created_at)";
+            $sql = "INSERT INTO vaults (bank_name, balance, created_at) VALUES (:bank_name, :balance, :created_at)";
             $params = [
                 'bank_name' => $data['bank_name'],
-                'account_name' => $data['account_name'],
                 'balance' => $data['balance'],
                 'created_at' => date('Y-m-d H:i:s'),
             ];
@@ -181,9 +179,7 @@ class Keuangan_model extends Model
             SELECT
                 vt.*,
                 source.bank_name AS source_bank_name,
-                source.account_name AS source_account_name,
-                target.bank_name AS target_bank_name,
-                target.account_name AS target_account_name
+                target.bank_name AS target_bank_name
             FROM vault_transactions vt
             LEFT JOIN vaults source ON source.id = vt.source_vault_id
             LEFT JOIN vaults target ON target.id = vt.target_vault_id
@@ -209,9 +205,7 @@ class Keuangan_model extends Model
                 vt.source_vault_id,
                 vt.target_vault_id,
                 source.bank_name AS source_bank_name,
-                source.account_name AS source_account_name,
                 target.bank_name AS target_bank_name,
-                target.account_name AS target_account_name,
                 'manual' AS source_module
             FROM vault_transactions vt
             LEFT JOIN vaults source ON source.id = vt.source_vault_id
@@ -236,9 +230,7 @@ class Keuangan_model extends Model
                     WHEN sales.payment_type = 'QRIS' THEN 'QRIS'
                     ELSE COALESCE(sales.payment_type, '')
                 END AS source_bank_name,
-                '' AS source_account_name,
                 vaults.bank_name AS target_bank_name,
-                vaults.account_name AS target_account_name,
                 'transaksi' AS source_module
             FROM sale_items
             INNER JOIN sales ON sales.id = sale_items.sale_id
@@ -262,9 +254,7 @@ class Keuangan_model extends Model
                 END AS notes,
                 'pelunasan_hutang' AS transaction_type,
                 'PELANGGAN HUTANG' AS source_bank_name,
-                '' AS source_account_name,
                 vaults.bank_name AS target_bank_name,
-                vaults.account_name AS target_account_name,
                 debt_payments.vault_id AS target_vault_id,
                 'hutang' AS source_module
             FROM debt_payments
@@ -278,21 +268,21 @@ class Keuangan_model extends Model
         $debtPaymentRows = $debtPaymentStatement->fetchAll(PDO::FETCH_ASSOC);
 
         $rows = array_merge($manualRows, $salesRows, $debtPaymentRows);
-                usort($rows, function (array $a, array $b): int {
+        usort($rows, function (array $a, array $b): int {
             return strcmp(($b['created_at'] ?? ''), ($a['created_at'] ?? ''));
         });
 
         $runningBalance = $currentBalance;
         foreach ($rows as &$row) {
-            $isDebit = (int) ($row['target_vault_id'] ?? 0) === $vaultId
+            $isInflow = (int) ($row['target_vault_id'] ?? 0) === $vaultId
                 || in_array((string) ($row['transaction_type'] ?? ''), ['penjualan', 'pelunasan_hutang'], true);
-            $debet = $isDebit ? (float) ($row['amount'] ?? 0) : 0;
-            $kredit = $isDebit ? 0 : (float) ($row['amount'] ?? 0);
+            $kredit = $isInflow ? (float) ($row['amount'] ?? 0) : 0;
+            $debet = $isInflow ? 0 : (float) ($row['amount'] ?? 0);
 
             $row['debet'] = $debet;
             $row['kredit'] = $kredit;
             $row['ending_balance'] = $runningBalance;
-            $runningBalance = $runningBalance - $debet + $kredit;
+            $runningBalance = $runningBalance - $kredit + $debet;
         }
         unset($row);
 
@@ -301,7 +291,7 @@ class Keuangan_model extends Model
 
     public function findVaultByKeyword(string $keyword): array|false
     {
-        $statement = $this->db->prepare("SELECT * FROM vaults WHERE bank_name LIKE :keyword OR account_name LIKE :keyword ORDER BY id DESC LIMIT 1");
+        $statement = $this->db->prepare("SELECT * FROM vaults WHERE bank_name LIKE :keyword ORDER BY id DESC LIMIT 1");
         $statement->execute([
             'keyword' => '%' . $keyword . '%',
         ]);
@@ -363,5 +353,29 @@ class Keuangan_model extends Model
         $this->updateVaultBalance($vaultId, $paymentAmount);
         $this->db->commit();
         return true;
+    }
+
+    public function createManualDebt(array $data): bool
+    {
+        $customerId = (int) ($data['customer_id'] ?? 0);
+        $totalDebt = max(0, (float) ($data['total_debt'] ?? 0));
+        $dueDate = trim((string) ($data['due_date'] ?? ''));
+        $notes = trim((string) ($data['notes'] ?? ''));
+
+        if ($customerId <= 0 || $totalDebt <= 0) {
+            return false;
+        }
+
+        $statement = $this->db->prepare("
+            INSERT INTO debts (sale_id, customer_id, total_debt, paid_amount, due_date, status, created_at)
+            VALUES (0, :customer_id, :total_debt, 0, :due_date, 'Belum Lunas', :created_at)
+        ");
+
+        return $statement->execute([
+            'customer_id' => $customerId,
+            'total_debt' => $totalDebt,
+            'due_date' => $dueDate !== '' ? $dueDate : null,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
     }
 }

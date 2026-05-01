@@ -9,7 +9,6 @@ class Dashboard_model extends Model
             SELECT COUNT(*) AS total_rows, COALESCE(SUM(balance), 0) AS total_balance
             FROM vaults
             WHERE UPPER(COALESCE(bank_name, '')) = :warung_modal
-               OR UPPER(COALESCE(account_name, '')) = :warung_modal
         ");
         $exactStatement->execute([
             'warung_modal' => 'WARUNG MODAL',
@@ -23,7 +22,6 @@ class Dashboard_model extends Model
             SELECT COALESCE(SUM(balance), 0)
             FROM vaults
             WHERE UPPER(COALESCE(bank_name, '')) LIKE :keyword
-               OR UPPER(COALESCE(account_name, '')) LIKE :keyword
         ");
         $keywordStatement->execute([
             'keyword' => '%MODAL%',

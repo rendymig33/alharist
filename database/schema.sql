@@ -46,7 +46,6 @@ CREATE TABLE IF NOT EXISTS customers (
 CREATE TABLE IF NOT EXISTS vaults (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     bank_name TEXT NOT NULL,
-    account_name TEXT,
     balance REAL NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
 );

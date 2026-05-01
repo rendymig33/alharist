@@ -53,7 +53,6 @@ class Keuangan_controller extends Controller
             $model->saveVault([
                 'id' => post('id'),
                 'bank_name' => post('bank_name'),
-                'account_name' => post('account_name'),
                 'balance' => unformat_number((string) post('balance')),
             ]);
 
@@ -96,6 +95,17 @@ class Keuangan_controller extends Controller
         $keyword = trim((string) ($_GET['q'] ?? ''));
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (post('action') === 'create_manual_debt') {
+                $saved = $model->createManualDebt([
+                    'customer_id' => (int) post('customer_id', 0),
+                    'total_debt' => unformat_number((string) post('total_debt')),
+                    'due_date' => post('due_date'),
+                    'notes' => post('notes'),
+                ]);
+                flash($saved ? 'Hutang manual berhasil ditambahkan.' : 'Hutang manual tidak valid.', $saved ? 'success' : 'warning');
+                $this->redirect('keuangan/hutang');
+            }
+
             $debtId = (int) post('debt_id');
             $paymentMode = post('payment_mode', 'partial');
             $vaultId = (int) post('vault_id', 0);
@@ -119,6 +129,7 @@ class Keuangan_controller extends Controller
             'title' => 'Pencatatan Utang',
             'debts' => $model->debts($keyword),
             'vaults' => $model->allVaults(),
+            'customers' => $this->model('Pelanggan_model')->all(),
             'keyword' => $keyword,
             'flash' => flash(),
         ]);

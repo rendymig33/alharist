@@ -578,7 +578,6 @@
                 <a class="<?= active_menu('pelanggan', $currentRoute) ?>" href="index.php?route=pelanggan">Master Pelanggan</a>
                 <a class="<?= active_menu('transaksi', $currentRoute) ?>" href="index.php?route=transaksi">Transaksi</a>
                 <a class="<?= active_menu('transaksi/list', $currentRoute) ?>" href="index.php?route=transaksi/list">List Transaksi</a>
-                <a class="<?= active_menu('layanan', $currentRoute) ?>" href="index.php?route=layanan">Top Up & PPOB</a>
                 <a class="<?= active_menu('stok/receive', $currentRoute) ?>" href="index.php?route=stok/receive">Receive Item</a>
                 <a class="<?= active_menu('stok/opname', $currentRoute) ?>" href="index.php?route=stok/opname">Stok Opname</a>
                 <a class="<?= active_menu('keuangan/hutang', $currentRoute) ?>" href="index.php?route=keuangan/hutang">Utang</a>

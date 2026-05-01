@@ -16,6 +16,16 @@
         gap: 14px;
     }
 
+    .vault-history-table th,
+    .vault-history-table td {
+        font-family: "Jetbrains Mono", "Times New Roman", serif;
+        font-size: 13px;
+    }
+
+    .vault-history-table tbody tr:nth-child(even) {
+        background: #fcfcfd;
+    }
+
     .vault-card {
         background: linear-gradient(135deg, #ffffff, #fffaf0);
         border: 1px solid var(--line);
@@ -221,9 +231,7 @@
                 <div class="vault-card-head">
                     <div>
                         <div class="section-title" style="margin-bottom:6px;"><?= htmlspecialchars((string) $vault['bank_name']) ?></div>
-                        <strong style="font-size:18px;"><?= htmlspecialchars((string) ($vault['account_name'] ?: 'Tanpa keterangan')) ?></strong>
                     </div>
-                    <div class="badge">#<?= (int) $vault['id'] ?></div>
                 </div>
                 <div class="vault-card-balance"><?= rupiah((float) $vault['balance']) ?></div>
                 <div class="small" style="margin-bottom:14px;">Saldo aktif pada brankas ini.</div>
@@ -244,7 +252,6 @@
         </div>
         <form method="post">
             <input type="hidden" name="id" value="<?= htmlspecialchars((string) ($editVault['id'] ?? '')) ?>">
-            <input type="hidden" name="account_name" value="<?= htmlspecialchars((string) ($editVault['account_name'] ?? '')) ?>">
             <div class="form-grid">
                 <div>
                     <div class="small">Nama Bank / Wallet</div><input name="bank_name" placeholder="Contoh: Mandiri / QRIS / DANA" value="<?= htmlspecialchars((string) ($editVault['bank_name'] ?? '')) ?>" required>
@@ -261,7 +268,7 @@
     <div class="modal-backdrop <?= (int) ($activeTransactionVaultId ?? 0) === (int) $vault['id'] ? 'active' : '' ?>" id="vault-transaction-modal-<?= (int) $vault['id'] ?>">
         <div class="modal vault-transaction-modal">
             <div class="modal-head">
-                <h3 style="margin:0;">Transaksi <?= htmlspecialchars($vault['bank_name'] . (!empty($vault['account_name']) ? ' - ' . $vault['account_name'] : '')) ?></h3>
+                <h3 style="margin:0;">Transaksi <?= htmlspecialchars((string) $vault['bank_name']) ?></h3>
                 <button type="button" class="modal-close" onclick="toggleVaultTransactionModal(<?= (int) $vault['id'] ?>, false)">Tutup</button>
             </div>
             <form method="post">
@@ -284,7 +291,7 @@
                         <select name="source_vault_id">
                             <option value="0">Pilih Brankas Sumber</option>
                             <?php foreach ($vaults as $sourceVault): ?>
-                                <option value="<?= (int) $sourceVault['id'] ?>" <?= (int) $sourceVault['id'] === (int) $vault['id'] ? 'selected' : '' ?>><?= htmlspecialchars($sourceVault['bank_name'] . (!empty($sourceVault['account_name']) ? ' - ' . $sourceVault['account_name'] : '')) ?></option>
+                                <option value="<?= (int) $sourceVault['id'] ?>" <?= (int) $sourceVault['id'] === (int) $vault['id'] ? 'selected' : '' ?>><?= htmlspecialchars((string) $sourceVault['bank_name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -293,7 +300,7 @@
                         <select name="target_vault_id">
                             <option value="0">Pilih Brankas Tujuan</option>
                             <?php foreach ($vaults as $targetVault): ?>
-                                <option value="<?= (int) $targetVault['id'] ?>" <?= (int) $targetVault['id'] === (int) $vault['id'] ? 'selected' : '' ?>><?= htmlspecialchars($targetVault['bank_name'] . (!empty($targetVault['account_name']) ? ' - ' . $targetVault['account_name'] : '')) ?></option>
+                                <option value="<?= (int) $targetVault['id'] ?>" <?= (int) $targetVault['id'] === (int) $vault['id'] ? 'selected' : '' ?>><?= htmlspecialchars((string) $targetVault['bank_name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -317,7 +324,6 @@
                                 <th>Ke</th>
                                 <th>Debet</th>
                                 <th>Kredit</th>
-                                <th>Saldo Akhir</th>
                                 <th>Catatan</th>
                                 <th>Aksi</th>
                             </tr>
@@ -333,8 +339,8 @@
                                     'pelunasan_hutang' => 'Pelunasan Hutang',
                                     default => $transaction['transaction_type'],
                                 };
-                                $sourceLabel = trim((string) (($transaction['source_bank_name'] ?? '') . (!empty($transaction['source_account_name']) ? ' - ' . $transaction['source_account_name'] : '')));
-                                $targetLabel = trim((string) (($transaction['target_bank_name'] ?? '') . (!empty($transaction['target_account_name']) ? ' - ' . $transaction['target_account_name'] : '')));
+                                $sourceLabel = trim((string) ($transaction['source_bank_name'] ?? ''));
+                                $targetLabel = trim((string) ($transaction['target_bank_name'] ?? ''));
                                 ?>
                                 <tr>
                                     <td data-label="Tanggal"><?= htmlspecialchars((string) $transaction['transaction_date']) ?></td>
@@ -343,7 +349,6 @@
                                     <td data-label="Ke"><?= htmlspecialchars($targetLabel !== '' ? $targetLabel : '-') ?></td>
                                     <td data-label="Debet"><?= rupiah((float) ($transaction['debet'] ?? 0)) ?></td>
                                     <td data-label="Kredit"><?= rupiah((float) ($transaction['kredit'] ?? 0)) ?></td>
-                                    <td data-label="Saldo Akhir"><?= rupiah((float) ($transaction['ending_balance'] ?? 0)) ?></td>
                                     <td data-label="Catatan"><?= htmlspecialchars((string) ($transaction['notes'] ?: '-')) ?></td>
                                     <td data-label="Aksi">
                                         <?php if (($transaction['source_module'] ?? '') === 'manual'): ?>

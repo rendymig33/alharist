@@ -54,6 +54,8 @@ class Database
 
     private static function migrateSqlite(PDO $pdo): void
     {
+        self::dropSqliteVaultAccountName($pdo);
+
         $columns = $pdo->query("PRAGMA table_info(items)")->fetchAll(PDO::FETCH_ASSOC);
         $columnNames = array_column($columns, 'name');
 
@@ -172,6 +174,8 @@ class Database
 
     private static function migrateMysql(PDO $pdo): void
     {
+        self::dropMysqlVaultAccountName($pdo);
+
         self::ensureMysqlColumn($pdo, 'items', 'description', "ALTER TABLE items ADD COLUMN description TEXT NULL");
         self::ensureMysqlColumn($pdo, 'items', 'barcode', "ALTER TABLE items ADD COLUMN barcode VARCHAR(100) NULL");
         self::ensureMysqlColumn($pdo, 'items', 'small_unit_qty', "ALTER TABLE items ADD COLUMN small_unit_qty INT NOT NULL DEFAULT 1");
@@ -243,5 +247,47 @@ class Database
         if ((int) $statement->fetchColumn() === 0) {
             $pdo->exec($sql);
         }
+    }
+
+    private static function dropSqliteVaultAccountName(PDO $pdo): void
+    {
+        $columns = $pdo->query("PRAGMA table_info(vaults)")->fetchAll(PDO::FETCH_ASSOC);
+        $columnNames = array_column($columns, 'name');
+        if (!in_array('account_name', $columnNames, true)) {
+            return;
+        }
+
+        $pdo->beginTransaction();
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS vaults_tmp (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                bank_name TEXT NOT NULL,
+                balance REAL NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            )
+        ");
+        $pdo->exec("
+            INSERT INTO vaults_tmp (id, bank_name, balance, created_at)
+            SELECT id, bank_name, balance, created_at
+            FROM vaults
+        ");
+        $pdo->exec("DROP TABLE vaults");
+        $pdo->exec("ALTER TABLE vaults_tmp RENAME TO vaults");
+        $pdo->commit();
+    }
+
+    private static function dropMysqlVaultAccountName(PDO $pdo): void
+    {
+        $statement = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vaults' AND COLUMN_NAME = 'account_name'
+        ");
+        $statement->execute();
+        if ((int) $statement->fetchColumn() === 0) {
+            return;
+        }
+
+        $pdo->exec("ALTER TABLE vaults DROP COLUMN account_name");
     }
 }
