@@ -298,16 +298,35 @@ class Keuangan_model extends Model
         return $statement->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function findPrimaryModalVault(): array|false
+    {
+        $exactStatement = $this->db->prepare("
+            SELECT *
+            FROM vaults
+            WHERE UPPER(COALESCE(bank_name, '')) = :bank_name
+            ORDER BY id ASC
+            LIMIT 1
+        ");
+        $exactStatement->execute(['bank_name' => 'SALDO MODAL #1']);
+        $exact = $exactStatement->fetch(PDO::FETCH_ASSOC);
+        if ($exact) {
+            return $exact;
+        }
+
+        return $this->findVaultByKeyword('SALDO MODAL');
+    }
+
     public function debts(string $keyword = ''): array
     {
         $sql = "SELECT debts.*, customers.name AS customer_name, sales.invoice_no,
                        (debts.total_debt - debts.paid_amount) AS remaining_debt
                 FROM debts
                 LEFT JOIN customers ON customers.id = debts.customer_id
-                LEFT JOIN sales ON sales.id = debts.sale_id";
+                LEFT JOIN sales ON sales.id = debts.sale_id
+                WHERE (debts.total_debt - debts.paid_amount) > 0";
         $params = [];
         if (trim($keyword) !== '') {
-            $sql .= " WHERE customers.name LIKE :keyword OR sales.invoice_no LIKE :keyword OR debts.status LIKE :keyword";
+            $sql .= " AND (customers.name LIKE :keyword OR sales.invoice_no LIKE :keyword OR debts.status LIKE :keyword)";
             $params['keyword'] = '%' . trim($keyword) . '%';
         }
 
@@ -351,6 +370,40 @@ class Keuangan_model extends Model
         ]);
 
         $this->updateVaultBalance($vaultId, $paymentAmount);
+        $this->db->commit();
+        return true;
+    }
+
+    public function deleteDebt(int $debtId): bool
+    {
+        $debtStatement = $this->db->prepare("SELECT * FROM debts WHERE id = :id");
+        $debtStatement->execute(['id' => $debtId]);
+        $debt = $debtStatement->fetch(PDO::FETCH_ASSOC);
+
+        if (!$debt) {
+            return false;
+        }
+
+        $paymentsStatement = $this->db->prepare("SELECT * FROM debt_payments WHERE debt_id = :debt_id");
+        $paymentsStatement->execute(['debt_id' => $debtId]);
+        $payments = $paymentsStatement->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->db->beginTransaction();
+
+        foreach ($payments as $payment) {
+            $vaultId = (int) ($payment['vault_id'] ?? 0);
+            $amount = (float) ($payment['amount'] ?? 0);
+            if ($vaultId > 0 && $amount > 0) {
+                $this->updateVaultBalance($vaultId, -1 * $amount);
+            }
+        }
+
+        $deletePayments = $this->db->prepare("DELETE FROM debt_payments WHERE debt_id = :debt_id");
+        $deletePayments->execute(['debt_id' => $debtId]);
+
+        $deleteDebt = $this->db->prepare("DELETE FROM debts WHERE id = :id");
+        $deleteDebt->execute(['id' => $debtId]);
+
         $this->db->commit();
         return true;
     }

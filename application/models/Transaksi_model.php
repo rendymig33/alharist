@@ -96,10 +96,12 @@ class Transaksi_model extends Model
                 'line_profit' => $item['line_profit'],
             ]);
 
-            $stockStatement->execute([
-                'qty' => $item['qty'],
-                'id' => $item['item_id'],
-            ]);
+            if (empty($item['is_esaldo'])) {
+                $stockStatement->execute([
+                    'qty' => $item['qty'],
+                    'id' => $item['item_id'],
+                ]);
+            }
         }
 
         if ($payload['payment_type'] === 'Hutang') {
@@ -292,7 +294,12 @@ class Transaksi_model extends Model
             return false;
         }
 
-        $itemsStatement = $this->db->prepare("SELECT * FROM sale_items WHERE sale_id = :sale_id");
+        $itemsStatement = $this->db->prepare("
+            SELECT sale_items.*, items.category
+            FROM sale_items
+            LEFT JOIN items ON items.id = sale_items.item_id
+            WHERE sale_id = :sale_id
+        ");
         $itemsStatement->execute(['sale_id' => $saleId]);
         $saleItems = $itemsStatement->fetchAll(PDO::FETCH_ASSOC);
 
@@ -300,10 +307,12 @@ class Transaksi_model extends Model
 
         $restoreStock = $this->db->prepare("UPDATE items SET stock = stock + :qty WHERE id = :id");
         foreach ($saleItems as $item) {
-            $restoreStock->execute([
-                'qty' => $item['qty'],
-                'id' => $item['item_id'],
-            ]);
+            if (($item['category'] ?? '') !== 'E-SALDO') {
+                $restoreStock->execute([
+                    'qty' => $item['qty'],
+                    'id' => $item['item_id'],
+                ]);
+            }
         }
 
         if (in_array($sale['payment_type'], ['Tunai', 'QRIS'], true)) {

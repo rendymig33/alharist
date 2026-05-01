@@ -102,7 +102,7 @@
     </form>
     <div class="debt-table-wrap">
         <table class="debt-table">
-            <thead><tr><th>Invoice</th><th>Pelanggan</th><th>Total</th><th>Terbayar</th><th>Sisa</th><th>Status</th><th>Bayar</th></tr></thead>
+            <thead><tr><th>Invoice</th><th>Pelanggan</th><th>Total</th><th>Terbayar</th><th>Sisa</th><th>Status</th><th>Bayar</th><th>Aksi</th></tr></thead>
             <tbody>
             <?php foreach ($debts as $debt): ?>
                 <tr>
@@ -133,6 +133,13 @@
                             <input type="text" name="amount" class="debt-payment-amount" placeholder="Nominal bayar" required>
                             <input name="notes" placeholder="Catatan">
                             <button class="btn-green" type="submit">Simpan</button>
+                        </form>
+                    </td>
+                    <td data-label="Aksi">
+                        <form method="post" onsubmit="return confirm('Hapus transaksi hutang ini? Pembayaran yang sudah masuk akan dibalik dari brankas.');" style="margin:0;">
+                            <input type="hidden" name="action" value="delete_debt">
+                            <input type="hidden" name="debt_id" value="<?= (int) $debt['id'] ?>">
+                            <button class="btn btn-danger" type="submit">Delete</button>
                         </form>
                     </td>
                 </tr>

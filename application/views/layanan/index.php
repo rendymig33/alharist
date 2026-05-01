@@ -83,8 +83,8 @@
 </style>
 <div class="card service-shell">
     <div class="service-head-grid">
-        <div style="padding:10px 14px; border-right:1px solid #333;">Pelanggan PPOB</div>
-        <div style="padding:10px 14px; border-right:1px solid #333;">Layanan Digital</div>
+        <div style="padding:10px 14px; border-right:1px solid #333;">Modal Dasar</div>
+        <div style="padding:10px 14px; border-right:1px solid #333;"><?= htmlspecialchars((string) (($modalVault['bank_name'] ?? 'SALDO MODAL #1'))) ?></div>
         <div style="padding:10px 14px; border-right:1px solid #333;">Pembayaran</div>
         <div style="padding:10px 14px; border-right:1px solid #333;">Tanggal: <?= date('d M Y') ?></div>
         <div style="padding:10px 14px;">Kode: <?= htmlspecialchars((string) $nextCode) ?></div>
@@ -103,21 +103,23 @@
                         </select>
                     </div>
                     <div>
-                        <div class="small">Pelanggan</div>
-                        <select name="customer_id">
-                            <option value="0">Pilih Pelanggan</option>
-                            <?php foreach ($customers as $customer): ?>
-                                <option value="<?= (int) $customer['id'] ?>"><?= htmlspecialchars($customer['name']) ?> - <?= htmlspecialchars((string) $customer['phone']) ?></option>
+                        <div class="small">Brankas Tujuan Untung</div>
+                        <select name="vault_id">
+                            <option value="0">Pilih Brankas Tujuan</option>
+                            <?php foreach ($vaults as $vault): ?>
+                                <option value="<?= (int) $vault['id'] ?>"><?= htmlspecialchars($vault['bank_name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div><div class="small">Nomor Tujuan / ID</div><input name="target_number" placeholder="Nomor e-wallet, token, atau rekening" required></div>
-                    <div><div class="small">Nominal</div><input type="text" class="money-input" name="nominal" placeholder="Nominal layanan" required></div>
                     <div><div class="small">Harga Beli</div><input type="text" class="money-input" name="buy_price" placeholder="Modal layanan" required></div>
                     <div><div class="small">Harga Jual</div><input type="text" class="money-input" name="sell_price" placeholder="Harga ke pelanggan" required></div>
-                    <div><div class="small">Sumber Rekening Awal</div><select name="vault_id"><option value="0">Pilih Rekening Sumber</option><?php foreach ($vaults as $vault): ?><option value="<?= (int) $vault['id'] ?>"><?= htmlspecialchars($vault['bank_name']) ?></option><?php endforeach; ?></select></div>
                     <div><div class="small">Pembayaran</div><select name="payment_type" required><option value="Tunai">Tunai</option><option value="QRIS">QRIS</option></select></div>
                     <div><div class="small">No. Token / Kode Manual</div><input name="token_number" placeholder="Isi jika ada token atau kode manual"></div>
+                    <div style="grid-column:1 / -1;">
+                        <div class="info-strip">
+                            <div class="small">Modal akan dipotong dari <?= htmlspecialchars((string) (($modalVault['bank_name'] ?? 'SALDO MODAL #1'))) ?> sebesar Harga Beli. Keuntungan bersih akan masuk ke brankas tujuan yang dipilih.</div>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -142,18 +144,20 @@
             <div class="small">Cari Layanan</div>
             <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari kode, jenis, pelanggan, atau tujuan">
         </div>
-        <button type="submit" class="btn btn-secondary">Search</button>
-        <a href="index.php?route=layanan" class="btn btn-info">Reset</a>
+        <div class="search-reset-actions">
+            <button type="submit" class="btn btn-secondary">Search</button>
+            <a href="index.php?route=layanan" class="btn btn-info">Reset</a>
+        </div>
     </form>
     <div class="service-list-wrap">
         <table>
-            <thead><tr><th>Kode</th><th>Jenis</th><th>Tujuan</th><th>Jual</th><th>Token</th><th>Profit</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>Kode</th><th>Jenis</th><th>Modal</th><th>Jual</th><th>Token</th><th>Profit</th><th>Aksi</th></tr></thead>
             <tbody>
             <?php foreach ($services as $service): ?>
                 <tr>
                     <td><?= htmlspecialchars($service['code']) ?></td>
                     <td><?= htmlspecialchars($service['service_type']) ?></td>
-                    <td><?= htmlspecialchars($service['target_number']) ?></td>
+                    <td><?= rupiah((float) $service['buy_price']) ?></td>
                     <td><?= rupiah((float) $service['sell_price']) ?></td>
                     <td><?= htmlspecialchars((string) ($service['token_number'] ?? '-')) ?></td>
                     <td><?= rupiah((float) $service['profit']) ?></td>
@@ -177,10 +181,9 @@
         <div style="font-weight:700; text-align:center;">STRUK LAYANAN</div>
         <div>Kode: <?= htmlspecialchars($serviceReceipt['code']) ?></div>
         <div>Jenis: <?= htmlspecialchars($serviceReceipt['service_type']) ?></div>
-        <div>Pelanggan: <?= htmlspecialchars((string) ($serviceReceipt['customer_name'] ?? '-')) ?></div>
-        <div>Tujuan: <?= htmlspecialchars($serviceReceipt['target_number']) ?></div>
-        <div>Nominal: <?= rupiah((float) $serviceReceipt['nominal']) ?></div>
+        <div>Modal: <?= rupiah((float) $serviceReceipt['buy_price']) ?></div>
         <div>Bayar: <?= rupiah((float) $serviceReceipt['sell_price']) ?></div>
+        <div>Untung: <?= rupiah((float) $serviceReceipt['profit']) ?></div>
         <div>Token: <?= htmlspecialchars((string) ($serviceReceipt['token_number'] ?? '-')) ?></div>
         <div>Tanggal: <?= date('d-m-Y H:i') ?></div>
     </div>

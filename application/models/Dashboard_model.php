@@ -5,29 +5,14 @@ class Dashboard_model extends Model
 {
     private function modalVaultBalance(): float
     {
-        $exactStatement = $this->db->prepare("
-            SELECT COUNT(*) AS total_rows, COALESCE(SUM(balance), 0) AS total_balance
+        $statement = $this->db->prepare("
+            SELECT COALESCE(balance, 0)
             FROM vaults
-            WHERE UPPER(COALESCE(bank_name, '')) = :warung_modal
+            WHERE id = 1
+            LIMIT 1
         ");
-        $exactStatement->execute([
-            'warung_modal' => 'WARUNG MODAL',
-        ]);
-        $exactRow = $exactStatement->fetch(PDO::FETCH_ASSOC) ?: ['total_rows' => 0, 'total_balance' => 0];
-        if ((int) ($exactRow['total_rows'] ?? 0) > 0) {
-            return (float) ($exactRow['total_balance'] ?? 0);
-        }
-
-        $keywordStatement = $this->db->prepare("
-            SELECT COALESCE(SUM(balance), 0)
-            FROM vaults
-            WHERE UPPER(COALESCE(bank_name, '')) LIKE :keyword
-        ");
-        $keywordStatement->execute([
-            'keyword' => '%MODAL%',
-        ]);
-
-        return (float) $keywordStatement->fetchColumn();
+        $statement->execute();
+        return (float) ($statement->fetchColumn() ?: 0);
     }
 
     private function currentProfitSql(): string

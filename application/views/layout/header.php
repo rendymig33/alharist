@@ -575,6 +575,7 @@
             <nav class="menu">
                 <a class="<?= active_menu('dashboard', $currentRoute) ?>" href="index.php?route=dashboard">Dashboard</a>
                 <a class="<?= active_menu('barang', $currentRoute) ?>" href="index.php?route=barang">Master Barang</a>
+                <a class="<?= active_menu('esaldo', $currentRoute) ?>" href="index.php?route=esaldo">Master E-Saldo</a>
                 <a class="<?= active_menu('pelanggan', $currentRoute) ?>" href="index.php?route=pelanggan">Master Pelanggan</a>
                 <a class="<?= active_menu('transaksi', $currentRoute) ?>" href="index.php?route=transaksi">Transaksi</a>
                 <a class="<?= active_menu('transaksi/list', $currentRoute) ?>" href="index.php?route=transaksi/list">List Transaksi</a>

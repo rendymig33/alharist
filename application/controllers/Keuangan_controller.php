@@ -106,6 +106,12 @@ class Keuangan_controller extends Controller
                 $this->redirect('keuangan/hutang');
             }
 
+            if (post('action') === 'delete_debt') {
+                $deleted = $model->deleteDebt((int) post('debt_id'));
+                flash($deleted ? 'Transaksi hutang berhasil dihapus.' : 'Transaksi hutang tidak ditemukan.', $deleted ? 'success' : 'warning');
+                $this->redirect('keuangan/hutang');
+            }
+
             $debtId = (int) post('debt_id');
             $paymentMode = post('payment_mode', 'partial');
             $vaultId = (int) post('vault_id', 0);

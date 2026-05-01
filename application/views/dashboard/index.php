@@ -5,6 +5,12 @@ $detailQuery = array_filter([
     'date_to' => $filterDateTo ?? '',
 ]);
 $isFiltered = !empty($filterDateFrom) || !empty($filterDateTo);
+$summary = array_merge([
+    'sales' => 0,
+    'profit' => 0,
+    'vault' => 0,
+    'debts' => 0,
+], $summary ?? []);
 ?>
 <style>
     .dashboard-transactions {
@@ -355,7 +361,7 @@ $isFiltered = !empty($filterDateFrom) || !empty($filterDateTo);
         <div class="metric"><?= rupiah($summary['profit']) ?></div>
     </div>
     <div class="card">
-        <div class="small">Saldo Modal (Bruto) (WARUNG MODAL)</div>
+        <div class="small">Saldo Modal (Bruto)</div>
         <div class="metric"><?= rupiah($summary['vault']) ?></div>
     </div>
     <div class="card">

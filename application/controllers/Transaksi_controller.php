@@ -6,14 +6,20 @@ class Transaksi_controller extends Controller
     public function index(): void
     {
         $barangModel = $this->model('Barang_model');
+        $esaldoModel = $this->model('Esaldo_model');
         $pelangganModel = $this->model('Pelanggan_model');
         $keuanganModel = $this->model('Keuangan_model');
         $transaksiModel = $this->model('Transaksi_model');
 
         $_SESSION['cart'] ??= [];
+        $_SESSION['transaction_mode'] ??= 'biasa';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = post('action');
+            $postedMode = trim((string) post('transaction_mode', $_SESSION['transaction_mode']));
+            if (in_array($postedMode, ['biasa', 'esaldo'], true)) {
+                $_SESSION['transaction_mode'] = $postedMode;
+            }
 
             if ($action === 'delete_sale') {
                 $deleted = $transaksiModel->deleteSale((int) post('sale_id'));
@@ -101,6 +107,37 @@ class Transaksi_controller extends Controller
                 $this->redirect('transaksi');
             }
 
+            if ($action === 'add_esaldo') {
+                $item = $esaldoModel->find((int) post('item_id'));
+                if ($item) {
+                    $buyPrice = unformat_number((string) post('manual_buy_price'));
+                    $sellPrice = unformat_number((string) post('manual_sell_price'));
+                    $targetNumber = trim((string) post('target_number'));
+
+                    if ($buyPrice <= 0 || $sellPrice <= 0) {
+                        flash('Modal dan harga jual E-Transaction wajib diisi.', 'warning');
+                    } else {
+                        $_SESSION['cart'][] = [
+                            'item_id' => (int) $item['id'],
+                            'vault_id' => 0,
+                            'name' => $item['name'],
+                            'qty' => 1,
+                            'display_qty' => 1,
+                            'stock_display' => $targetNumber,
+                            'purchase_label' => 'E-Transaction',
+                            'promo_label' => $targetNumber !== '' ? 'Tujuan: ' . $targetNumber : '',
+                            'purchase_price' => $buyPrice,
+                            'selling_price' => $sellPrice,
+                            'line_total' => $sellPrice,
+                            'line_profit' => $sellPrice - $buyPrice,
+                            'is_esaldo' => 1,
+                        ];
+                        flash('E-Saldo ditambahkan ke transaksi.');
+                    }
+                }
+                $this->redirect('transaksi');
+            }
+
             if ($action === 'update_item_vault') {
                 $index = (int) post('index');
                 $vaultId = (int) post('vault_id', 0);
@@ -163,7 +200,11 @@ class Transaksi_controller extends Controller
                     'vault_id' => $vaultId,
                     'subtotal' => $subtotal,
                     'total_profit' => $totalProfit,
-                    'total_paid' => $paymentType === 'Hutang' ? 0 : ($paymentType === 'Tunai' ? $cashPaid : $subtotal),
+                    'total_paid' => match ($paymentType) {
+                        'Hutang', 'Prive' => 0,
+                        'Tunai' => $cashPaid,
+                        default => $subtotal,
+                    },
                     'notes' => '',
                     'due_date' => $paymentType === 'Hutang' && $dueDate !== '' ? $dueDate : null,
                     'items' => $_SESSION['cart'],
@@ -193,9 +234,11 @@ class Transaksi_controller extends Controller
         $this->view('transaksi/index', [
             'title' => 'Pencatatan Transaksi',
             'items' => $barangModel->searchForTransaction($_GET['q'] ?? ''),
+            'esaldoItems' => $esaldoModel->searchForTransaction($_GET['q'] ?? ''),
             'customers' => $pelangganModel->all(),
             'vaults' => $keuanganModel->allVaults(),
             'cart' => $_SESSION['cart'],
+            'transactionMode' => $_SESSION['transaction_mode'],
             'nextInvoiceNo' => $transaksiModel->nextInvoiceNo(),
             'latestSales' => $transaksiModel->latestSales(),
             'flash' => flash(),

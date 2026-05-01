@@ -18,7 +18,6 @@
 
     .vault-history-table th,
     .vault-history-table td {
-        font-family: "Jetbrains Mono", "Times New Roman", serif;
         font-size: 13px;
     }
 
@@ -237,6 +236,7 @@
                 <div class="small" style="margin-bottom:14px;">Saldo aktif pada brankas ini.</div>
                 <div class="action-row">
                     <button type="button" class="btn btn-secondary" onclick="toggleVaultTransactionModal(<?= (int) $vault['id'] ?>, true)">Transaksi</button>
+                    <button type="button" class="btn btn-info" onclick="openTambahSaldo(<?= (int) $vault['id'] ?>)">Tambah Saldo</button>
                     <a class="btn btn-secondary" href="index.php?route=keuangan/brankas&edit=<?= (int) $vault['id'] ?>">Edit</a>
                 </div>
             </div>
@@ -378,6 +378,15 @@
 
     function toggleVaultTransactionModal(vaultId, show) {
         document.getElementById('vault-transaction-modal-' + vaultId).classList.toggle('active', show);
+    }
+
+    function openTambahSaldo(vaultId) {
+        toggleVaultTransactionModal(vaultId, true);
+        const typeField = document.getElementById('transaction_type_' + vaultId);
+        if (typeField) {
+            typeField.value = 'dana_masuk';
+            typeField.dispatchEvent(new Event('change'));
+        }
     }
     (function() {
         document.querySelectorAll('.money-input').forEach(function(input) {

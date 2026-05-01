@@ -17,7 +17,7 @@ class Barang_model extends Model
 
     public function all(): array
     {
-        $items = $this->db->query("SELECT * FROM items ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+        $items = $this->db->query("SELECT * FROM items WHERE category <> 'E-SALDO' ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
         return array_map([$this, 'mapStockDisplay'], $items);
     }
 
@@ -31,10 +31,13 @@ class Barang_model extends Model
         $statement = $this->db->prepare("
             SELECT *
             FROM items
-            WHERE code LIKE :keyword
+            WHERE category <> 'E-SALDO'
+              AND (
+                   code LIKE :keyword
                OR barcode LIKE :keyword
                OR name LIKE :keyword
                OR category LIKE :keyword
+              )
             ORDER BY id DESC
         ");
         $statement->execute([
@@ -242,7 +245,7 @@ class Barang_model extends Model
 
     public function searchForTransaction(string $keyword = ''): array
     {
-        $statement = $this->db->prepare("SELECT * FROM items WHERE name LIKE :keyword OR code LIKE :keyword OR barcode LIKE :keyword ORDER BY name ASC");
+        $statement = $this->db->prepare("SELECT * FROM items WHERE category <> 'E-SALDO' AND (name LIKE :keyword OR code LIKE :keyword OR barcode LIKE :keyword) ORDER BY name ASC");
         $statement->execute(['keyword' => '%' . $keyword . '%']);
         $items = $statement->fetchAll(PDO::FETCH_ASSOC);
         return array_map([$this, 'mapStockDisplay'], $items);

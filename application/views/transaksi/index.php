@@ -1,6 +1,7 @@
 <?php
 $subtotal = array_sum(array_column($cart, 'line_total'));
 $profit = array_sum(array_column($cart, 'line_profit'));
+$transactionMode = $transactionMode ?? 'biasa';
 ?>
 <style>
     .transaction-shell {
@@ -405,13 +406,32 @@ $profit = array_sum(array_column($cart, 'line_profit'));
         <div style="padding:10px 14px;">No Penjualan: <?= htmlspecialchars((string) ($nextInvoiceNo ?? 'AUTO')) ?></div>
     </div>
     <div style="padding:10px 14px; background:#fff8db; color:#8a5a00; font-size:13px; font-weight:700;">Kategori Pembiayaan: Konsumsi Pribadi</div>
+    <div style="padding:12px 14px; border-bottom:1px solid #e2e4ea; background:#fff;">
+        <form method="post" style="display:grid; grid-template-columns:220px auto; gap:12px; align-items:end;">
+            <input type="hidden" name="action" value="set_mode">
+            <div>
+                <div class="small">Mode Transaksi</div>
+                <select name="transaction_mode" onchange="this.form.submit()">
+                    <option value="biasa" <?= $transactionMode === 'biasa' ? 'selected' : '' ?>>Transaksi Biasa</option>
+                    <option value="esaldo" <?= $transactionMode === 'esaldo' ? 'selected' : '' ?>>E-Transaction</option>
+                </select>
+            </div>
+            <div class="small" style="align-self:end; padding-bottom:12px;">
+                <?= $transactionMode === 'esaldo' ? 'Mode E-Transaction aktif. Modal dan harga jual diisi manual saat tambah item.' : 'Mode transaksi barang biasa aktif.' ?>
+            </div>
+        </form>
+    </div>
     <div class="transaction-main-grid">
         <div style="padding:16px; border-right:1px solid #e2e4ea;">
-            <div class="small" style="font-weight:700; color:#d27a00;">TAMBAH ITEM</div>
+            <div class="small" style="font-weight:700; color:#d27a00;"><?= $transactionMode === 'esaldo' ? 'TAMBAH E-TRANSACTION' : 'TAMBAH ITEM' ?></div>
             <div class="transaction-add-grid">
-                <input id="open-item-modal" type="text" inputmode="numeric" autocomplete="off" placeholder="Scan / input barcode lalu Enter" style="background:#fff;">
-                <button type="button" class="btn" onclick="toggleItemModal(true)">Pilih Barang</button>
-                <button type="button" class="btn btn-info scan-btn" id="open-scanner-btn">Scan Barcode</button>
+                <input id="open-item-modal" type="text" inputmode="numeric" autocomplete="off" placeholder="<?= $transactionMode === 'esaldo' ? 'Cari nama produk E-Saldo lalu Enter' : 'Scan / input barcode lalu Enter' ?>" style="background:#fff;">
+                <button type="button" class="btn" onclick="toggleItemModal(true)"><?= $transactionMode === 'esaldo' ? 'Pilih E-Saldo' : 'Pilih Barang' ?></button>
+                <?php if ($transactionMode === 'biasa'): ?>
+                    <button type="button" class="btn btn-info scan-btn" id="open-scanner-btn">Scan Barcode</button>
+                <?php else: ?>
+                    <button type="button" class="btn btn-info scan-btn" disabled>Input Manual</button>
+                <?php endif; ?>
             </div>
             <div class="small scan-status" id="scan-status"></div>
 
@@ -439,6 +459,7 @@ $profit = array_sum(array_column($cart, 'line_profit'));
                             </td>
                             <td data-label="Masuk Ke" style="min-width:220px;">
                                 <form method="post">
+                                    <input type="hidden" name="transaction_mode" value="<?= htmlspecialchars((string) $transactionMode) ?>">
                                     <input type="hidden" name="action" value="update_item_vault">
                                     <input type="hidden" name="index" value="<?= (int) $index ?>">
                                     <select name="vault_id" onchange="this.form.submit()">
@@ -453,6 +474,7 @@ $profit = array_sum(array_column($cart, 'line_profit'));
                             </td>
                             <td data-label="Aksi">
                                 <form method="post">
+                                    <input type="hidden" name="transaction_mode" value="<?= htmlspecialchars((string) $transactionMode) ?>">
                                     <input type="hidden" name="action" value="remove_item">
                                     <input type="hidden" name="index" value="<?= (int) $index ?>">
                                     <button class="btn-secondary" type="submit">X</button>
@@ -484,6 +506,7 @@ $profit = array_sum(array_column($cart, 'line_profit'));
 <div class="card" style="margin-top:18px;">
     <form method="post" id="checkout-form">
         <input type="hidden" name="action" value="checkout">
+        <input type="hidden" name="transaction_mode" value="<?= htmlspecialchars((string) $transactionMode) ?>">
         <div class="form-grid">
             <div>
                 <div class="small">Pembayaran</div>
@@ -491,6 +514,7 @@ $profit = array_sum(array_column($cart, 'line_profit'));
                     <option value="Tunai">Tunai</option>
                     <option value="QRIS">QRIS</option>
                     <option value="Hutang">Hutang</option>
+                    <option value="Prive">Prive</option>
                 </select>
             </div>
             <div id="customer-field" style="display:none;">
@@ -513,17 +537,20 @@ $profit = array_sum(array_column($cart, 'line_profit'));
 <div class="modal-backdrop" id="item-modal">
     <div class="modal item-modal-dialog">
         <div class="modal-head">
-            <h3 style="margin:0;">Pilih Barang</h3>
+            <h3 style="margin:0;"><?= $transactionMode === 'esaldo' ? 'Pilih E-Saldo' : 'Pilih Barang' ?></h3>
             <button type="button" class="modal-close" onclick="toggleItemModal(false)">Tutup</button>
         </div>
-        <input class="item-modal-search" id="item-search" type="text" inputmode="text" autocomplete="off" placeholder="Cari kode / nama barang / barcode">
-        <div class="scanner-panel" id="scanner-panel">
-            <video id="scanner-video" class="scanner-video" autoplay muted playsinline></video>
-            <div class="small">Arahkan kamera ke barcode produk. Jika barcode cocok, barang akan langsung dipilih.</div>
-            <button type="button" class="btn btn-secondary" id="close-scanner-btn">Tutup Scanner</button>
-        </div>
+        <input class="item-modal-search" id="item-search" type="text" inputmode="text" autocomplete="off" placeholder="<?= $transactionMode === 'esaldo' ? 'Cari nama atau kode E-Saldo' : 'Cari kode / nama barang / barcode' ?>">
+        <?php if ($transactionMode === 'biasa'): ?>
+            <div class="scanner-panel" id="scanner-panel">
+                <video id="scanner-video" class="scanner-video" autoplay muted playsinline></video>
+                <div class="small">Arahkan kamera ke barcode produk. Jika barcode cocok, barang akan langsung dipilih.</div>
+                <button type="button" class="btn btn-secondary" id="close-scanner-btn">Tutup Scanner</button>
+            </div>
+        <?php endif; ?>
         <div class="item-modal-table-wrap">
             <div class="item-grid">
+                <?php if ($transactionMode === 'biasa'): ?>
                 <?php foreach ($items as $item): ?>
                     <div class="item-row item-card" data-search="<?= htmlspecialchars(strtolower(trim(($item['code'] ?? '') . ' ' . ($item['barcode'] ?? '') . ' ' . ($item['name'] ?? '')))) ?>" data-barcode="<?= htmlspecialchars((string) ($item['barcode'] ?? '')) ?>">
                         <div class="item-card-head">
@@ -551,6 +578,7 @@ $profit = array_sum(array_column($cart, 'line_profit'));
                         </div>
                         <div>
                             <form method="post" class="purchase-form">
+                                <input type="hidden" name="transaction_mode" value="biasa">
                                 <input type="hidden" name="action" value="add_item">
                                 <input type="hidden" name="item_id" value="<?= (int) $item['id'] ?>">
                                 <select name="purchase_mode" class="purchase-mode">
@@ -568,6 +596,34 @@ $profit = array_sum(array_column($cart, 'line_profit'));
                         </div>
                     </div>
                 <?php endforeach; ?>
+                <?php else: ?>
+                <?php foreach (($esaldoItems ?? []) as $item): ?>
+                    <div class="item-row item-card" data-search="<?= htmlspecialchars(strtolower(trim(($item['code'] ?? '') . ' ' . ($item['name'] ?? '') . ' ' . ($item['description'] ?? '')))) ?>" data-barcode="">
+                        <div class="item-card-head">
+                            <div class="item-card-code"><?= htmlspecialchars((string) $item['code']) ?></div>
+                            <div class="small">Provider: <?= htmlspecialchars((string) ($item['description'] ?? '-')) ?></div>
+                            <div class="item-card-name"><?= htmlspecialchars((string) $item['name']) ?></div>
+                        </div>
+                        <div class="item-card-meta">
+                            <div class="item-price-box">
+                                <span class="small" style="color:#8a5a00;">Default master</span>
+                                <strong><?= rupiah((float) ($item['selling_price'] ?? 0)) ?></strong>
+                            </div>
+                        </div>
+                        <div>
+                            <form method="post" class="purchase-form" style="grid-template-columns:1fr 1fr;">
+                                <input type="hidden" name="transaction_mode" value="esaldo">
+                                <input type="hidden" name="action" value="add_esaldo">
+                                <input type="hidden" name="item_id" value="<?= (int) $item['id'] ?>">
+                                <input type="text" name="target_number" placeholder="No tujuan / pelanggan">
+                                <input type="text" name="manual_buy_price" class="money-inline" placeholder="Modal manual" value="<?= htmlspecialchars(number_format((float) ($item['purchase_price'] ?? 0), 0, ',', '.')) ?>">
+                                <input type="text" name="manual_sell_price" class="money-inline" placeholder="Jual manual" value="<?= htmlspecialchars(number_format((float) ($item['selling_price'] ?? 0), 0, ',', '.')) ?>">
+                                <button type="submit">Tambah</button>
+                            </form>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -829,6 +885,12 @@ $profit = array_sum(array_column($cart, 'line_profit'));
             const digits = String(value || '').replace(/[^\d]/g, '');
             return digits === '' ? '' : Number(digits).toLocaleString('id-ID');
         }
+
+        document.querySelectorAll('.money-inline').forEach(function (input) {
+            input.addEventListener('input', function () {
+                this.value = formatInputNumber(this.value);
+            });
+        });
 
         function updateChange() {
             const paid = parseFloat((cashPaid.value || '0'));
