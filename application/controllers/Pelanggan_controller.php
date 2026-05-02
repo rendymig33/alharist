@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class Pelanggan_controller extends Controller
@@ -20,8 +21,6 @@ class Pelanggan_controller extends Controller
                 'id' => post('id'),
                 'code' => post('code'),
                 'name' => post('name'),
-                'phone' => post('phone'),
-                'address' => post('address'),
             ]);
 
             flash('Data pelanggan berhasil disimpan.');

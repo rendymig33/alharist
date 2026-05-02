@@ -339,11 +339,11 @@ class Transaksi_model extends Model
                 if ($vaultId <= 0) {
                     continue;
                 }
-                $vaultTotals[$vaultId] = ($vaultTotals[$vaultId] ?? 0) + (float) ($item['line_total'] ?? 0);
+                $vaultTotals[$vaultId] = ($vaultTotals[$vaultId] ?? 0) + (float) ($item['line_profit'] ?? 0);
             }
 
             if (empty($vaultTotals) && !empty($sale['vault_id'])) {
-                $vaultTotals[(int) $sale['vault_id']] = (float) $sale['subtotal'];
+                $vaultTotals[(int) $sale['vault_id']] = (float) $sale['total_profit'];
             }
 
             foreach ($vaultTotals as $vaultId => $amount) {

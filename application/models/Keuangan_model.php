@@ -220,7 +220,7 @@ class Keuangan_model extends Model
                 sale_items.id,
                 sales.transaction_date,
                 sales.created_at,
-                sale_items.line_total AS amount,
+                sale_items.line_profit AS amount,
                 sales.invoice_no AS notes,
                 'penjualan' AS transaction_type,
                 NULL AS source_vault_id,

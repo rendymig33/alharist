@@ -217,7 +217,7 @@ class Transaksi_controller extends Controller
                         if ($rowVaultId <= 0) {
                             continue;
                         }
-                        $vaultTotals[$rowVaultId] = ($vaultTotals[$rowVaultId] ?? 0) + (float) ($row['line_total'] ?? 0);
+                        $vaultTotals[$rowVaultId] = ($vaultTotals[$rowVaultId] ?? 0) + (float) ($row['line_profit'] ?? 0);
                     }
 
                     foreach ($vaultTotals as $rowVaultId => $amount) {

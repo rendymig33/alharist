@@ -66,7 +66,7 @@
         <input type="hidden" name="route" value="pelanggan">
         <div>
             <div class="small">Cari Pelanggan</div>
-            <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari kode, nama, telepon, atau alamat">
+            <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari kode atau nama">
         </div>
         <div class="search-reset-actions">
             <button type="submit" class="btn btn-secondary">Search</button>
@@ -75,26 +75,30 @@
     </form>
     <div class="customer-table-wrap">
         <table class="customer-table">
-            <thead><tr><th>Kode</th><th>Nama</th><th>Telepon</th><th>Alamat</th><th>Aksi</th></tr></thead>
-            <tbody>
-            <?php foreach ($customers as $customer): ?>
+            <thead>
                 <tr>
-                    <td data-label="Kode"><?= htmlspecialchars($customer['code']) ?></td>
-                    <td data-label="Nama"><?= htmlspecialchars($customer['name']) ?></td>
-                    <td data-label="Telepon"><?= htmlspecialchars((string) $customer['phone']) ?></td>
-                    <td data-label="Alamat"><?= htmlspecialchars((string) $customer['address']) ?></td>
-                    <td data-label="Aksi">
-                        <div class="action-row">
-                            <a class="btn btn-secondary" href="index.php?route=pelanggan&edit=<?= (int) $customer['id'] ?>">Edit</a>
-                            <form method="post" onsubmit="return confirm('Hapus pelanggan ini?');" style="margin:0;">
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="id" value="<?= (int) $customer['id'] ?>">
-                                <button type="submit" class="btn btn-danger">Hapus</button>
-                            </form>
-                        </div>
-                    </td>
+                    <th>Kode</th>
+                    <th>Nama</th>
+                    <th>Aksi</th>
                 </tr>
-            <?php endforeach; ?>
+            </thead>
+            <tbody>
+                <?php foreach (($customers ?? []) as $customer): ?>
+                    <tr>
+                        <td data-label="Kode"><?= htmlspecialchars($customer['code']) ?></td>
+                        <td data-label="Nama"><?= htmlspecialchars($customer['name']) ?></td>
+                        <td data-label="Aksi">
+                            <div class="action-row">
+                                <a class="btn btn-secondary" href="index.php?route=pelanggan&edit=<?= (int) $customer['id'] ?>">Edit</a>
+                                <form method="post" onsubmit="return confirm('Hapus pelanggan ini?');" style="margin:0;">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="<?= (int) $customer['id'] ?>">
+                                    <button type="submit" class="btn btn-danger">Hapus</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
@@ -108,12 +112,14 @@
         </div>
         <form method="post">
             <input type="hidden" name="id" value="<?= htmlspecialchars((string) ($editCustomer['id'] ?? '')) ?>">
-            <input type="hidden" name="code" value="<?= htmlspecialchars((string) $nextCode) ?>">
+            <input type="hidden" name="code" value="<?= htmlspecialchars((string) ($nextCode ?? '')) ?>">
             <div class="form-grid">
-                <div><div class="small">Kode Pelanggan</div><input value="<?= htmlspecialchars((string) $nextCode) ?>" readonly></div>
-                <div><div class="small">Nama Pelanggan</div><input name="name" placeholder="Nama pelanggan" value="<?= htmlspecialchars((string) ($editCustomer['name'] ?? '')) ?>" required></div>
-                <div><div class="small">No. Telepon</div><input name="phone" placeholder="Nomor HP pelanggan" value="<?= htmlspecialchars((string) ($editCustomer['phone'] ?? '')) ?>"></div>
-                <div><div class="small">Alamat</div><input name="address" placeholder="Alamat pelanggan" value="<?= htmlspecialchars((string) ($editCustomer['address'] ?? '')) ?>"></div>
+                <div>
+                    <div class="small">Kode Pelanggan</div><input value="<?= htmlspecialchars((string) ($nextCode ?? '')) ?>" readonly>
+                </div>
+                <div>
+                    <div class="small">Nama Pelanggan</div><input name="name" placeholder="Nama pelanggan" value="<?= htmlspecialchars((string) ($editCustomer['name'] ?? '')) ?>" required>
+                </div>
             </div>
             <div style="margin-top:12px;"><button type="submit">Simpan Pelanggan</button></div>
         </form>

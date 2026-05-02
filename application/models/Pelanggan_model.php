@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class Pelanggan_model extends Model
@@ -32,8 +33,6 @@ class Pelanggan_model extends Model
             FROM customers
             WHERE code LIKE :keyword
                OR name LIKE :keyword
-               OR phone LIKE :keyword
-               OR address LIKE :keyword
             ORDER BY id DESC
         ");
         $statement->execute(['keyword' => '%' . $keyword . '%']);
@@ -54,21 +53,17 @@ class Pelanggan_model extends Model
         }
 
         if (!empty($data['id'])) {
-            $sql = "UPDATE customers SET code=:code, name=:name, phone=:phone, address=:address WHERE id=:id";
+            $sql = "UPDATE customers SET code=:code, name=:name WHERE id=:id";
             $params = [
                 'id' => $data['id'],
                 'code' => $data['code'],
                 'name' => $data['name'],
-                'phone' => $data['phone'],
-                'address' => $data['address'],
             ];
         } else {
-            $sql = "INSERT INTO customers (code, name, phone, address, created_at) VALUES (:code, :name, :phone, :address, :created_at)";
+            $sql = "INSERT INTO customers (code, name, created_at) VALUES (:code, :name, :created_at)";
             $params = [
                 'code' => $data['code'],
                 'name' => $data['name'],
-                'phone' => $data['phone'],
-                'address' => $data['address'],
                 'created_at' => date('Y-m-d H:i:s'),
             ];
         }
@@ -107,8 +102,6 @@ class Pelanggan_model extends Model
             $this->save([
                 'code' => trim((string) $row[0]),
                 'name' => trim((string) $row[1]),
-                'phone' => trim((string) $row[2]),
-                'address' => trim((string) $row[3]),
             ]);
             $count++;
         }
