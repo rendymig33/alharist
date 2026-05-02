@@ -132,12 +132,15 @@
 
     .esaldo-balance-wrap {
         position: relative;
+        display: flex;
+        align-items: center;
     }
 
     .esaldo-currency-prefix {
         position: absolute;
         left: 14px;
-        top: 38px;
+        top: 50%;
+        transform: translateY(-50%);
         font-weight: 700;
         color: #98a2b3;
         pointer-events: none;
