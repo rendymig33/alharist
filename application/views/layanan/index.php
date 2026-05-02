@@ -45,6 +45,7 @@
     }
 
     @media (max-width: 920px) {
+
         .service-head-grid,
         .service-main-grid {
             grid-template-columns: 1fr;
@@ -57,16 +58,16 @@
     }
 
     @media (max-width: 640px) {
-        .service-head-grid > div {
+        .service-head-grid>div {
             border-right: none !important;
             border-bottom: 1px solid #333;
         }
 
-        .service-head-grid > div:last-child {
+        .service-head-grid>div:last-child {
             border-bottom: none;
         }
 
-        .service-main-grid > div:first-child {
+        .service-main-grid>div:first-child {
             border-right: none !important;
             border-bottom: 1px solid #e2e4ea;
         }
@@ -87,7 +88,7 @@
         <div style="padding:10px 14px; border-right:1px solid #333;"><?= htmlspecialchars((string) (($modalVault['bank_name'] ?? 'SALDO MODAL #1'))) ?></div>
         <div style="padding:10px 14px; border-right:1px solid #333;">Pembayaran</div>
         <div style="padding:10px 14px; border-right:1px solid #333;">Tanggal: <?= date('d M Y') ?></div>
-        <div style="padding:10px 14px;">Kode: <?= htmlspecialchars((string) $nextCode) ?></div>
+        <div style="padding:10px 14px;">Kode: <?= htmlspecialchars((string) ($nextCode ?? '-')) ?></div>
     </div>
     <div class="service-main-grid">
         <div style="padding:16px; border-right:1px solid #e2e4ea;">
@@ -106,15 +107,28 @@
                         <div class="small">Brankas Tujuan Untung</div>
                         <select name="vault_id">
                             <option value="0">Pilih Brankas Tujuan</option>
-                            <?php foreach ($vaults as $vault): ?>
-                                <option value="<?= (int) $vault['id'] ?>"><?= htmlspecialchars($vault['bank_name']) ?></option>
-                            <?php endforeach; ?>
+                            <?php if (isset($vaults) && is_array($vaults)): ?>
+                                <?php foreach ($vaults as $vault): ?>
+                                    <option value="<?= (int) $vault['id'] ?>"><?= htmlspecialchars($vault['bank_name']) ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
                     </div>
-                    <div><div class="small">Harga Beli</div><input type="text" class="money-input" name="buy_price" placeholder="Modal layanan" required></div>
-                    <div><div class="small">Harga Jual</div><input type="text" class="money-input" name="sell_price" placeholder="Harga ke pelanggan" required></div>
-                    <div><div class="small">Pembayaran</div><select name="payment_type" required><option value="Tunai">Tunai</option><option value="QRIS">QRIS</option></select></div>
-                    <div><div class="small">No. Token / Kode Manual</div><input name="token_number" placeholder="Isi jika ada token atau kode manual"></div>
+                    <div>
+                        <div class="small">Harga Beli</div><input type="text" class="money-input" name="buy_price" placeholder="Modal layanan" required>
+                    </div>
+                    <div>
+                        <div class="small">Harga Jual</div><input type="text" class="money-input" name="sell_price" placeholder="Harga ke pelanggan" required>
+                    </div>
+                    <div>
+                        <div class="small">Pembayaran</div><select name="payment_type" required>
+                            <option value="Tunai">Tunai</option>
+                            <option value="QRIS">QRIS</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="small">No. Token / Kode Manual</div><input name="token_number" placeholder="Isi jika ada token atau kode manual">
+                    </div>
                     <div style="grid-column:1 / -1;">
                         <div class="info-strip">
                             <div class="small">Modal akan dipotong dari <?= htmlspecialchars((string) (($modalVault['bank_name'] ?? 'SALDO MODAL #1'))) ?> sebesar Harga Beli. Keuntungan bersih akan masuk ke brankas tujuan yang dipilih.</div>
@@ -151,54 +165,70 @@
     </form>
     <div class="service-list-wrap">
         <table>
-            <thead><tr><th>Kode</th><th>Jenis</th><th>Modal</th><th>Jual</th><th>Token</th><th>Profit</th><th>Aksi</th></tr></thead>
-            <tbody>
-            <?php foreach ($services as $service): ?>
+            <thead>
                 <tr>
-                    <td><?= htmlspecialchars($service['code']) ?></td>
-                    <td><?= htmlspecialchars($service['service_type']) ?></td>
-                    <td><?= rupiah((float) $service['buy_price']) ?></td>
-                    <td><?= rupiah((float) $service['sell_price']) ?></td>
-                    <td><?= htmlspecialchars((string) ($service['token_number'] ?? '-')) ?></td>
-                    <td><?= rupiah((float) $service['profit']) ?></td>
-                    <td>
-                        <form method="post" onsubmit="return confirm('Hapus transaksi layanan ini?');">
-                            <input type="hidden" name="action" value="delete_service">
-                            <input type="hidden" name="service_id" value="<?= (int) $service['id'] ?>">
-                            <button class="btn-secondary" type="submit">Hapus</button>
-                        </form>
-                    </td>
+                    <th>Kode</th>
+                    <th>Jenis</th>
+                    <th>Modal</th>
+                    <th>Jual</th>
+                    <th>Token</th>
+                    <th>Profit</th>
+                    <th>Aksi</th>
                 </tr>
-            <?php endforeach; ?>
+            </thead>
+            <tbody>
+                <?php if (isset($services) && is_array($services)): ?>
+                    <?php foreach ($services as $service): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($service['code']) ?></td>
+                            <td><?= htmlspecialchars($service['service_type']) ?></td>
+                            <td><?= rupiah((float) $service['buy_price']) ?></td>
+                            <td><?= rupiah((float) $service['sell_price']) ?></td>
+                            <td><?= htmlspecialchars((string) ($service['token_number'] ?? '-')) ?></td>
+                            <td><?= rupiah((float) $service['profit']) ?></td>
+                            <td>
+                                <form method="post" onsubmit="return confirm('Hapus transaksi layanan ini?');">
+                                    <input type="hidden" name="action" value="delete_service">
+                                    <input type="hidden" name="service_id" value="<?= (int) $service['id'] ?>">
+                                    <button class="btn-secondary" type="submit">Hapus</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="7" style="text-align:center;">Data layanan tidak tersedia atau belum dimuat.</td>
+                    </tr>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
 </div>
 <?php if (!empty($serviceReceipt)): ?>
-<div class="card" style="margin-top:18px;">
-    <h3>Struk Layanan</h3>
-    <div id="service-receipt" style="border:1px dashed #999; padding:16px; max-width:420px;">
-        <div style="font-weight:700; text-align:center;">STRUK LAYANAN</div>
-        <div>Kode: <?= htmlspecialchars($serviceReceipt['code']) ?></div>
-        <div>Jenis: <?= htmlspecialchars($serviceReceipt['service_type']) ?></div>
-        <div>Modal: <?= rupiah((float) $serviceReceipt['buy_price']) ?></div>
-        <div>Bayar: <?= rupiah((float) $serviceReceipt['sell_price']) ?></div>
-        <div>Untung: <?= rupiah((float) $serviceReceipt['profit']) ?></div>
-        <div>Token: <?= htmlspecialchars((string) ($serviceReceipt['token_number'] ?? '-')) ?></div>
-        <div>Tanggal: <?= date('d-m-Y H:i') ?></div>
+    <div class="card" style="margin-top:18px;">
+        <h3>Struk Layanan</h3>
+        <div id="service-receipt" style="border:1px dashed #999; padding:16px; max-width:420px;">
+            <div style="font-weight:700; text-align:center;">STRUK LAYANAN</div>
+            <div>Kode: <?= htmlspecialchars($serviceReceipt['code']) ?></div>
+            <div>Jenis: <?= htmlspecialchars($serviceReceipt['service_type']) ?></div>
+            <div>Modal: <?= rupiah((float) $serviceReceipt['buy_price']) ?></div>
+            <div>Bayar: <?= rupiah((float) $serviceReceipt['sell_price']) ?></div>
+            <div>Untung: <?= rupiah((float) $serviceReceipt['profit']) ?></div>
+            <div>Token: <?= htmlspecialchars((string) ($serviceReceipt['token_number'] ?? '-')) ?></div>
+            <div>Tanggal: <?= date('d-m-Y H:i') ?></div>
+        </div>
+        <div style="margin-top:12px;"><button type="button" class="btn" onclick="window.print()">Cetak Struk</button></div>
     </div>
-    <div style="margin-top:12px;"><button type="button" class="btn" onclick="window.print()">Cetak Struk</button></div>
-</div>
 <?php endif; ?>
 <script>
-    (function () {
+    (function() {
         function formatNumber(value) {
             const digits = String(value || '').replace(/[^\d]/g, '');
             return digits === '' ? '' : Number(digits).toLocaleString('id-ID');
         }
 
-        document.querySelectorAll('.money-input').forEach(function (input) {
-            input.addEventListener('input', function () {
+        document.querySelectorAll('.money-input').forEach(function(input) {
+            input.addEventListener('input', function() {
                 this.value = formatNumber(this.value);
                 if (this.name === 'sell_price') {
                     document.getElementById('ppob-total').textContent = 'Rp ' + (Number(this.value.replace(/[^\d]/g, '')) || 0).toLocaleString('id-ID');
@@ -209,7 +239,7 @@
         const form = document.getElementById('service-form');
         const btn = document.getElementById('confirm-service');
         if (form && btn) {
-            btn.addEventListener('click', function () {
+            btn.addEventListener('click', function() {
                 if (window.confirm('Simpan transaksi layanan ini? Mohon cek kembali nominal, harga jual, dan nomor tujuan.')) {
                     form.submit();
                 }
