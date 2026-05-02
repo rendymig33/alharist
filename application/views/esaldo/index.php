@@ -121,12 +121,17 @@
         border: 1px solid var(--line);
         border-radius: 12px;
         font-size: 14px;
+        box-sizing: border-box;
     }
 
     .esaldo-input-group input:focus {
         outline: none;
         border-color: var(--red);
         box-shadow: 0 0 0 3px rgba(215, 25, 32, .1);
+    }
+
+    .esaldo-balance-wrap {
+        position: relative;
     }
 
     .esaldo-currency-prefix {
@@ -136,6 +141,7 @@
         font-weight: 700;
         color: #98a2b3;
         pointer-events: none;
+        z-index: 2;
     }
 
     .esaldo-input-group input[name="balance"] {
@@ -210,7 +216,7 @@
                     <div class="esaldo-card-balance"><?= rupiah((float) $esaldo['balance']) ?></div>
                     <div class="small" style="margin-bottom:14px;">Saldo aktif pada E-Saldo ini.</div>
                     <div class="action-row">
-                        <button type="button" class="btn btn-secondary edit-esaldo-btn" data-id="<?= (int) $esaldo['id'] ?>">Edit</button>
+                        <button type="button" class="btn btn-secondary edit-esaldo-btn" data-id="<?= (int) $esaldo['id'] ?>" data-name="<?= htmlspecialchars((string) $esaldo['name']) ?>" data-balance="<?= htmlspecialchars(number_format((float) $esaldo['balance'], 0, ',', '.')) ?>">Edit</button>
                         <button type="button" class="btn btn-danger delete-esaldo-btn" data-id="<?= (int) $esaldo['id'] ?>">Delete</button>
                     </div>
                 </div>
@@ -247,7 +253,7 @@
 
             <div class="esaldo-input-group">
                 <label for="esaldo-balance">Nominal Saldo</label>
-                <div style="position: relative;">
+                <div class="esaldo-balance-wrap">
                     <span class="esaldo-currency-prefix">Rp</span>
                     <input
                         id="esaldo-balance"
@@ -337,37 +343,16 @@
         });
 
         document.querySelectorAll('.edit-esaldo-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
+            btn.addEventListener('click', function() {
                 const id = this.dataset.id;
+                const name = this.dataset.name;
+                const balance = this.dataset.balance;
 
-                try {
-                    const response = await fetch(`index.php?route=esaldo&edit=${id}`);
-                    const html = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-
-                    const nameInput = document.getElementById('esaldo-name');
-                    const balanceInput = document.getElementById('esaldo-balance');
-                    const idInput = document.getElementById('esaldo-id');
-
-                    const formCard = doc.querySelector('.card');
-                    const nameValue = formCard?.querySelector('input[name="name"]')?.value || '';
-                    const balanceValue = formCard?.querySelector('input[name="balance"]')?.value || '';
-
-                    if (nameValue && balanceValue) {
-                        nameInput.value = nameValue;
-                        balanceInput.value = balanceValue;
-                        idInput.value = id;
-                        document.getElementById('esaldo-modal-title').textContent = 'Edit E-Saldo';
-                        toggleEsaldoModal(true);
-                    }
-                } catch (error) {
-                    const errorMsg = document.createElement('div');
-                    errorMsg.className = 'alert alert-danger';
-                    errorMsg.textContent = 'Error loading data';
-                    document.body.appendChild(errorMsg);
-                    setTimeout(() => errorMsg.remove(), 3000);
-                }
+                document.getElementById('esaldo-id').value = id;
+                document.getElementById('esaldo-name').value = name;
+                document.getElementById('esaldo-balance').value = balance;
+                document.getElementById('esaldo-modal-title').textContent = 'Edit E-Saldo';
+                toggleEsaldoModal(true);
             });
         });
 
