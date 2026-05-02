@@ -11,6 +11,8 @@ class Keuangan_controller extends Controller
         $activeTransactionVaultId = isset($_GET['transaksi']) ? (int) $_GET['transaksi'] : 0;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $isAjax = (string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
+
             if (post('action') === 'save_transaction') {
                 $targetVaultId = (int) post('target_vault_id', 0);
                 $sourceVaultId = (int) post('source_vault_id', 0);
@@ -22,6 +24,15 @@ class Keuangan_controller extends Controller
                     'amount' => unformat_number((string) post('amount')),
                     'notes' => post('notes'),
                 ]);
+
+                if ($isAjax) {
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => $saved,
+                        'message' => $saved ? 'Transaksi brankas berhasil disimpan.' : 'Transaksi brankas tidak valid.',
+                    ]);
+                    exit;
+                }
 
                 flash($saved ? 'Transaksi brankas berhasil disimpan.' : 'Transaksi brankas tidak valid.', $saved ? 'success' : 'warning');
                 $query = ['route' => 'keuangan/brankas'];
@@ -38,6 +49,16 @@ class Keuangan_controller extends Controller
             if (post('action') === 'delete_transaction') {
                 $redirectVaultId = (int) post('vault_id', 0);
                 $deleted = $model->deleteVaultTransaction((int) post('transaction_id'));
+
+                if ($isAjax) {
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => $deleted,
+                        'message' => $deleted ? 'Transaksi brankas berhasil dihapus.' : 'Transaksi brankas tidak ditemukan.',
+                    ]);
+                    exit;
+                }
+
                 flash($deleted ? 'Transaksi brankas berhasil dihapus.' : 'Transaksi brankas tidak ditemukan.', $deleted ? 'success' : 'warning');
                 $query = ['route' => 'keuangan/brankas'];
                 if ($redirectVaultId > 0) {

@@ -270,7 +270,11 @@
                 <h3 style="margin:0;">Transaksi <?= htmlspecialchars((string) $vault['bank_name']) ?></h3>
                 <button type="button" class="modal-close" onclick="toggleVaultTransactionModal(<?= (int) $vault['id'] ?>, false)">Tutup</button>
             </div>
-            <form method="post">
+            <div class="detail-box" style="margin-bottom:18px;">
+                <div class="small">Saldo Brankas Saat Ini</div>
+                <strong style="font-size:24px; display:block; margin-top:6px;"><?= rupiah((float) $vault['balance']) ?></strong>
+            </div>
+            <form method="post" class="vault-transaction-form" data-vault-id="<?= (int) $vault['id'] ?>">
                 <input type="hidden" name="action" value="save_transaction">
                 <div class="vault-transaction-grid">
                     <div>
@@ -351,12 +355,7 @@
                                     <td data-label="Catatan"><?= htmlspecialchars((string) ($transaction['notes'] ?: '-')) ?></td>
                                     <td data-label="Aksi">
                                         <?php if (($transaction['source_module'] ?? '') === 'manual'): ?>
-                                            <form method="post" onsubmit="return confirm('Hapus transaksi brankas ini?');" style="margin:0;">
-                                                <input type="hidden" name="action" value="delete_transaction">
-                                                <input type="hidden" name="transaction_id" value="<?= (int) $transaction['id'] ?>">
-                                                <input type="hidden" name="vault_id" value="<?= (int) $vault['id'] ?>">
-                                                <button type="submit" class="btn btn-danger">Delete</button>
-                                            </form>
+                                            <button type="button" class="btn btn-danger delete-transaction-btn" data-transaction-id="<?= (int) $transaction['id'] ?>" data-vault-id="<?= (int) $vault['id'] ?>">Delete</button>
                                         <?php else: ?>
                                             <span class="small">Dari modul transaksi</span>
                                         <?php endif; ?>
@@ -395,6 +394,76 @@
             });
         });
 
+        function setupDeleteHandlers() {
+            document.querySelectorAll('.delete-transaction-btn').forEach(function(btn) {
+                btn.removeEventListener('click', deleteHandler);
+                btn.addEventListener('click', deleteHandler);
+            });
+        }
+
+        async function deleteHandler(e) {
+            if (!confirm('Hapus transaksi brankas ini?')) return;
+
+            const button = this;
+            const transactionId = button.dataset.transactionId;
+            const vaultId = button.dataset.vaultId;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Menghapus...';
+
+            try {
+                const formData = new FormData();
+                formData.append('action', 'delete_transaction');
+                formData.append('transaction_id', transactionId);
+                formData.append('vault_id', vaultId);
+
+                const response = await fetch(
+                    'index.php?route=keuangan/brankas' + (window.location.search ? '&' + window.location.search.substring(1) : ''),
+                    {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    }
+                );
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const row = button.closest('tr');
+                    row.style.opacity = '0.5';
+                    row.style.pointerEvents = 'none';
+
+                    setTimeout(() => {
+                        row.remove();
+                        const successMsg = document.createElement('div');
+                        successMsg.className = 'alert alert-success';
+                        successMsg.textContent = result.message;
+                        document.body.appendChild(successMsg);
+                        setTimeout(() => successMsg.remove(), 3000);
+                    }, 300);
+                } else {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'alert alert-danger';
+                    errorMsg.textContent = result.message;
+                    document.body.appendChild(errorMsg);
+                    setTimeout(() => errorMsg.remove(), 3000);
+                }
+            } catch (error) {
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'alert alert-danger';
+                errorMsg.textContent = 'Terjadi kesalahan: ' + error.message;
+                document.body.appendChild(errorMsg);
+                setTimeout(() => errorMsg.remove(), 3000);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        }
+
+        setupDeleteHandlers();
+
         document.querySelectorAll('[id^=\"transaction_type_\"]').forEach(function(transactionType) {
             const vaultId = transactionType.dataset.vaultId;
             const sourceGroup = document.getElementById('source-vault-group-' + vaultId);
@@ -412,6 +481,63 @@
 
             transactionType.addEventListener('change', syncTransactionForm);
             syncTransactionForm();
+        });
+
+        document.querySelectorAll('.vault-transaction-form').forEach(function(form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const vaultId = this.dataset.vaultId;
+                const formData = new FormData(this);
+                const button = this.querySelector('button[type="submit"]');
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Menyimpan...';
+
+                try {
+                    const response = await fetch(
+                        'index.php?route=keuangan/brankas' + (window.location.search ? '&' + window.location.search.substring(1) : ''),
+                        {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
+                        }
+                    );
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const successMsg = document.createElement('div');
+                        successMsg.className = 'alert alert-success';
+                        successMsg.textContent = result.message;
+                        form.parentElement.insertBefore(successMsg, form);
+
+                        setTimeout(() => successMsg.remove(), 3000);
+                        form.reset();
+
+                        document.querySelectorAll('[id^="transaction_type_"]').forEach(select => {
+                            select.dispatchEvent(new Event('change'));
+                        });
+                    } else {
+                        const errorMsg = document.createElement('div');
+                        errorMsg.className = 'alert alert-danger';
+                        errorMsg.textContent = result.message;
+                        form.parentElement.insertBefore(errorMsg, form);
+                        setTimeout(() => errorMsg.remove(), 3000);
+                    }
+                } catch (error) {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'alert alert-danger';
+                    errorMsg.textContent = 'Terjadi kesalahan: ' + error.message;
+                    form.parentElement.insertBefore(errorMsg, form);
+                    setTimeout(() => errorMsg.remove(), 3000);
+                } finally {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            });
         });
     }());
 </script>
