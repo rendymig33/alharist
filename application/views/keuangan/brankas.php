@@ -483,61 +483,6 @@
             syncTransactionForm();
         });
 
-        document.querySelectorAll('.vault-transaction-form').forEach(function(form) {
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
 
-                const vaultId = this.dataset.vaultId;
-                const formData = new FormData(this);
-                const button = this.querySelector('button[type="submit"]');
-                const originalText = button.textContent;
-                button.disabled = true;
-                button.textContent = 'Menyimpan...';
-
-                try {
-                    const response = await fetch(
-                        'index.php?route=keuangan/brankas' + (window.location.search ? '&' + window.location.search.substring(1) : ''),
-                        {
-                            method: 'POST',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: formData
-                        }
-                    );
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const successMsg = document.createElement('div');
-                        successMsg.className = 'alert alert-success';
-                        successMsg.textContent = result.message;
-                        form.parentElement.insertBefore(successMsg, form);
-
-                        setTimeout(() => successMsg.remove(), 3000);
-                        form.reset();
-
-                        document.querySelectorAll('[id^="transaction_type_"]').forEach(select => {
-                            select.dispatchEvent(new Event('change'));
-                        });
-                    } else {
-                        const errorMsg = document.createElement('div');
-                        errorMsg.className = 'alert alert-danger';
-                        errorMsg.textContent = result.message;
-                        form.parentElement.insertBefore(errorMsg, form);
-                        setTimeout(() => errorMsg.remove(), 3000);
-                    }
-                } catch (error) {
-                    const errorMsg = document.createElement('div');
-                    errorMsg.className = 'alert alert-danger';
-                    errorMsg.textContent = 'Terjadi kesalahan: ' + error.message;
-                    form.parentElement.insertBefore(errorMsg, form);
-                    setTimeout(() => errorMsg.remove(), 3000);
-                } finally {
-                    button.disabled = false;
-                    button.textContent = originalText;
-                }
-            });
-        });
     }());
 </script>
