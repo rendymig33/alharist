@@ -405,7 +405,7 @@ $transactionMode = $transactionMode ?? 'biasa';
 <div class="card transaction-shell">
     <div class="transaction-head-grid">
         <div id="header-customer-label" style="padding:10px 14px; border-right:1px solid #333;">Customer: UMUM</div>
-        <div style="padding:10px 14px; border-right:1px solid #333;">Salesman:</div>
+        <div style="padding:10px 14px; border-right:1px solid #333;">Salesman: Rendi Satria</div>
         <div id="header-payment-label" style="padding:10px 14px; border-right:1px solid #333;">Termin: Tunai</div>
         <div style="padding:10px 14px; border-right:1px solid #333;">Tanggal: <?= date('d M Y') ?></div>
         <div style="padding:10px 14px;">No Penjualan: <?= htmlspecialchars((string) ($nextInvoiceNo ?? 'AUTO')) ?></div>
