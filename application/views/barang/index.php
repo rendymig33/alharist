@@ -376,7 +376,7 @@ $totalPages = $totalPages ?? 1;
                             <div class="action-row">
                                 <a class="btn btn-info" href="index.php?route=barang<?= !empty($keyword) ? '&q=' . urlencode((string) $keyword) : '' ?>&view=<?= (int) $item['id'] ?>">View</a>
                                 <a class="btn btn-secondary" href="index.php?route=barang<?= !empty($keyword) ? '&q=' . urlencode((string) $keyword) : '' ?>&edit=<?= (int) $item['id'] ?>">Edit</a>
-                                <form method="post" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus barang ini?', () => f.submit());" style="margin:0;">
+                                <form method="post" onsubmit="event.preventDefault(); askConfirmation('Hapus barang ini?', () => this.submit());" style="margin:0;">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
                                     <button type="submit" class="btn btn-danger">Delete</button>
@@ -447,7 +447,28 @@ $totalPages = $totalPages ?? 1;
                     </div>
                     <div>
                         <div class="small">Kategori</div>
-                        <input name="category" placeholder="Kategori" value="<?= htmlspecialchars((string) ($editItem['category'] ?? '')) ?>">
+                        <select name="category">
+                            <?php
+                            $categories = [
+                                'Staple Foods',
+                                'Food & Beverage',
+                                'Condiments & Spices',
+                                'Personal Care',
+                                'Household Supplies',
+                                'Tobacco',
+                                'Toys & Games',
+                                'Healthcare',
+                                'Stationery',
+                                'Utilities',
+                                'Etc'
+                            ];
+                            $currentCategory = $editItem['category'] ?? '';
+                            ?>
+                            <option value="">- Pilih Kategori -</option>
+                            <?php foreach ($categories as $cat): ?>
+                                <option value="<?= htmlspecialchars($cat) ?>" <?= $currentCategory === $cat ? 'selected' : '' ?>><?= htmlspecialchars($cat) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div style="grid-column:1 / -1;">
                         <div class="small">Nama Barang</div>
@@ -628,7 +649,7 @@ $totalPages = $totalPages ?? 1;
 
             <div class="action-row" style="margin-top:16px;">
                 <a class="btn btn-secondary" href="<?= htmlspecialchars($barangBaseUrl . '&edit=' . (int) $viewItem['id']) ?>">Edit</a>
-                <form method="post" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus barang ini?', () => f.submit());" style="margin:0;">
+                <form method="post" onsubmit="event.preventDefault(); askConfirmation('Hapus barang ini?', () => this.submit());" style="margin:0;">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="<?= (int) $viewItem['id'] ?>">
                     <button type="submit" class="btn btn-danger">Delete</button>

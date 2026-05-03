@@ -31,16 +31,18 @@ class Transaksi_model extends Model
     {
         return "
             (
-                {$itemAlias}.line_total - (
-                    {$itemAlias}.qty * (
-                        CASE
-                            WHEN COALESCE({$masterAlias}.category, '') = 'E-SALDO' THEN COALESCE({$itemAlias}.purchase_price, 0)
-                            WHEN COALESCE({$masterAlias}.small_unit_qty, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0) / {$masterAlias}.small_unit_qty
-                            WHEN COALESCE({$masterAlias}.purchase_price, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0)
-                            ELSE COALESCE({$itemAlias}.purchase_price, 0)
-                        END
+                CASE WHEN {$saleAlias}.payment_type = 'Hutang' THEN 0 ELSE
+                    {$itemAlias}.line_total - (
+                        {$itemAlias}.qty * (
+                            CASE
+                                WHEN COALESCE({$masterAlias}.category, '') = 'E-SALDO' THEN COALESCE({$itemAlias}.purchase_price, 0)
+                                WHEN COALESCE({$masterAlias}.small_unit_qty, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0) / {$masterAlias}.small_unit_qty
+                                WHEN COALESCE({$masterAlias}.purchase_price, 0) > 0 THEN COALESCE({$masterAlias}.purchase_price, 0)
+                                ELSE COALESCE({$itemAlias}.purchase_price, 0)
+                            END
+                        )
                     )
-                )
+                END
             )
         ";
     }
@@ -72,6 +74,8 @@ class Transaksi_model extends Model
         $autoShift = ($hour >= 6 && $hour < 15) ? 1 : 2;
         $shift = (int) ($payload['shift'] ?? $autoShift);
 
+        $isHutang = ($payload['payment_type'] === 'Hutang');
+
         $saleStatement = $this->db->prepare("INSERT INTO sales (invoice_no, customer_id, payment_type, vault_id, subtotal, total_profit, total_paid, notes, transaction_date, created_at, shift) VALUES (:invoice_no, :customer_id, :payment_type, :vault_id, :subtotal, :total_profit, :total_paid, :notes, :transaction_date, :created_at, :shift)");
         $saleStatement->execute([
             'invoice_no' => $payload['invoice_no'],
@@ -79,7 +83,7 @@ class Transaksi_model extends Model
             'payment_type' => $payload['payment_type'],
             'vault_id' => $payload['vault_id'] ?: null,
             'subtotal' => $payload['subtotal'],
-            'total_profit' => $payload['total_profit'],
+            'total_profit' => $isHutang ? 0 : $payload['total_profit'],
             'total_paid' => $payload['total_paid'],
             'notes' => $payload['notes'],
             'transaction_date' => date('Y-m-d'),
@@ -100,7 +104,7 @@ class Transaksi_model extends Model
                 'purchase_price' => $item['purchase_price'],
                 'selling_price' => $item['selling_price'],
                 'line_total' => $item['line_total'],
-                'line_profit' => $item['line_profit'],
+                'line_profit' => $isHutang ? 0 : $item['line_profit'],
             ]);
 
             if (empty($item['is_esaldo'])) {
@@ -141,8 +145,8 @@ class Transaksi_model extends Model
 
     public function latestSales(?string $dateFrom = null, ?string $dateTo = null, int $limit = 10): array
     {
-        $sql = "SELECT * FROM sales";
-        $conditions = [];
+        $sql = "SELECT sales.* FROM sales LEFT JOIN debts ON debts.sale_id = sales.id";
+        $conditions = ["(sales.payment_type != 'Hutang' OR debts.status = 'Lunas')"];
         $params = [];
 
         if (!empty($dateFrom)) {
@@ -181,11 +185,13 @@ class Transaksi_model extends Model
             FROM sales
             LEFT JOIN sale_items ON sale_items.sale_id = sales.id
             LEFT JOIN items ON items.id = sale_items.item_id
+            LEFT JOIN debts ON debts.sale_id = sales.id
+            WHERE (sales.payment_type != 'Hutang' OR debts.status = 'Lunas')
         ";
         $params = [];
 
         if ($keyword !== '') {
-            $sql .= " WHERE sales.invoice_no LIKE :keyword OR sales.payment_type LIKE :keyword OR sales.transaction_date LIKE :keyword";
+            $sql .= " AND (sales.invoice_no LIKE :keyword OR sales.payment_type LIKE :keyword OR sales.transaction_date LIKE :keyword)";
             $params['keyword'] = '%' . $keyword . '%';
         }
 
@@ -214,8 +220,9 @@ class Transaksi_model extends Model
                 FROM sales
                 LEFT JOIN sale_items ON sale_items.sale_id = sales.id
                 LEFT JOIN items ON items.id = sale_items.item_id
+                LEFT JOIN debts ON debts.sale_id = sales.id
         ";
-        $conditions = [];
+        $conditions = ["(sales.payment_type != 'Hutang' OR debts.status = 'Lunas')"];
         $params = [];
 
         if (!empty($dateFrom)) {
@@ -290,9 +297,11 @@ class Transaksi_model extends Model
             FROM sales
             LEFT JOIN sale_items ON sale_items.sale_id = sales.id
             LEFT JOIN items ON items.id = sale_items.item_id
-            WHERE transaction_date = :transaction_date
+            LEFT JOIN debts ON debts.sale_id = sales.id
+            WHERE sales.transaction_date = :transaction_date
+            AND (sales.payment_type != 'Hutang' OR debts.status = 'Lunas')
             GROUP BY sales.id
-            ORDER BY id DESC
+            ORDER BY sales.id DESC
         ");
         $salesStatement->execute(['transaction_date' => $transactionDate]);
         $sales = $salesStatement->fetchAll(PDO::FETCH_ASSOC);

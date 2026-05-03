@@ -278,10 +278,11 @@ $totalPages = $totalPages ?? 1;
                 </div>
                 <div class="vault-card-balance" id="vault-balance-display-<?= (int) $vault['id'] ?>" data-balance="<?= (float) $vault['balance'] ?>">
                     <?= rupiah((float) $vault['balance']) ?>
+                    <div id="vault-pecahan-summary-<?= (int) $vault['id'] ?>" style="font-size: 14px; font-weight: 600; color: #64748b; margin-top: 4px;"></div>
                 </div>
                 <div class="small" style="margin-bottom:14px;">
                     Saldo aktif pada brankas ini.
-                    <div id="vault-selisih-summary-<?= (int) $vault['id'] ?>" style="margin-top: 6px; font-weight: 800;"></div>
+                    <div id="vault-selisih-summary-<?= (int) $vault['id'] ?>" style="margin-top: 4px; font-weight: 700; font-size: 12px;"></div>
                 </div>
                 <div class="action-row">
                     <button type="button" class="btn btn-secondary" onclick="togglePecahanModal(<?= (int) $vault['id'] ?>, true)">Pecahan</button>
@@ -350,7 +351,11 @@ $totalPages = $totalPages ?? 1;
             </div>
             <div class="detail-box" style="margin-bottom:18px;">
                 <div class="small">Saldo Brankas Saat Ini</div>
-                <strong style="font-size:24px; display:block; margin-top:6px;"><?= rupiah((float) $vault['balance']) ?></strong>
+                <strong style="font-size:24px; display:block; margin-top:6px;">
+                    <?= rupiah((float) $vault['balance']) ?>
+                    <span id="modal-pecahan-summary-<?= (int) $vault['id'] ?>" style="font-size: 14px; font-weight: 600; color: #64748b; margin-left: 10px;"></span>
+                    <span id="modal-selisih-summary-<?= (int) $vault['id'] ?>" style="font-size: 13px; font-weight: 700; margin-left: 5px;"></span>
+                </strong>
             </div>
             <form method="post" class="vault-transaction-form" data-vault-id="<?= (int) $vault['id'] ?>">
                 <input type="hidden" name="action" value="save_transaction">
@@ -467,12 +472,14 @@ $totalPages = $totalPages ?? 1;
                 $pecahanList = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100];
                 foreach($pecahanList as $p):
                 ?>
-                <div class="pecahan-row" style="margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
-                    <div class="uang-label" style="width: 70px; font-weight: 600;"><?= number_format($p, 0, ',', '.') ?></div>
-                    <div style="font-weight: 600; color: #98a2b3;">x</div>
-                    <input type="number" min="0" class="input-lembar" data-nilai="<?= $p ?>" placeholder="0" style="width: 70px; text-align: center; padding: 6px;">
-                    <div style="font-weight: 600; color: #98a2b3;">=</div>
-                    <div class="subtotal" style="flex: 1; text-align: right; font-weight: 600; color: #344054;">0</div>
+                <div class="pecahan-row" style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                    <div class="uang-label" style="width: 65px; font-weight: 700; font-size: 13px; color: #475467;"><?= number_format($p, 0, ',', '.') ?></div>
+                    <div style="font-weight: 600; color: #98a2b3; font-size: 10px;">x</div>
+                    <input type="number" min="0" class="input-lembar input-kemarin" data-nilai="<?= $p ?>" readonly title="Jumlah uang kemarin" style="width: 55px; text-align: center; padding: 6px; border-radius: 8px; border: 1px solid #d0d5dd; font-size: 12px; font-weight: 600; background: #f9fafb; cursor: not-allowed;">
+                    <div style="font-weight: 600; color: #98a2b3; font-size: 10px;">+</div>
+                    <input type="number" min="0" class="input-lembar input-hari-ini" data-nilai="<?= $p ?>" title="Jumlah uang hari ini" style="width: 55px; text-align: center; padding: 6px; border-radius: 8px; border: 1px solid #d0d5dd; font-size: 12px; font-weight: 600;">
+                    <div style="font-weight: 600; color: #98a2b3; font-size: 10px;">=</div>
+                    <div class="subtotal" style="flex: 1; text-align: right; font-weight: 800; color: #1d2939; font-size: 13px;">0</div>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -528,19 +535,43 @@ $totalPages = $totalPages ?? 1;
             const totalEl = document.getElementById('total-uang-' + vaultId);
             const selisihEl = document.getElementById('selisih-uang-' + vaultId);
             const cardSelisihEl = document.getElementById('vault-selisih-summary-' + vaultId);
+            const pecahanSummaryEl = document.getElementById('vault-pecahan-summary-' + vaultId);
+            const modalPecahanEl = document.getElementById('modal-pecahan-summary-' + vaultId);
+            const modalSelisihEl = document.getElementById('modal-selisih-summary-' + vaultId);
             const saldoEl = document.getElementById('vault-balance-display-' + vaultId);
             const saldoAwal = parseFloat(saldoEl ? saldoEl.dataset.balance : 0);
 
             let total = 0;
             let dataToSave = {};
-            inputs.forEach(function(inp) {
-                const count = parseInt(inp.value) || 0;
-                const nilai = parseInt(inp.dataset.nilai) || 0;
-                const subtotal = count * nilai;
-                const subtotalDisplay = inp.closest('.pecahan-row').querySelector('.subtotal');
+            
+            // Loop per baris (row) untuk menghitung subtotal dan akumulasi total
+            const rows = container.querySelectorAll('.pecahan-row');
+            rows.forEach(function(row) {
+                const kInput = row.querySelector('.input-kemarin');
+                const hInput = row.querySelector('.input-hari-ini');
+                const nilai = parseInt(kInput.dataset.nilai) || 0;
+                
+                const kCount = parseInt(kInput.value) || 0;
+                const hCount = parseInt(hInput.value) || 0;
+                const totalLembar = kCount + hCount;
+
+                // Memberi warna merah jika kemarin kosong (sesuai permintaan user)
+                if (kCount === 0) {
+                    kInput.style.backgroundColor = '#fef2f2'; // Merah muda transparan
+                    kInput.style.borderColor = '#fda29b';
+                    kInput.style.color = '#b42318';
+                } else {
+                    kInput.style.backgroundColor = '#f9fafb';
+                    kInput.style.borderColor = '#d0d5dd';
+                    kInput.style.color = '#475467';
+                }
+                
+                const subtotal = totalLembar * nilai;
+                const subtotalDisplay = row.querySelector('.subtotal');
                 if (subtotalDisplay) subtotalDisplay.textContent = subtotal.toLocaleString('id-ID');
+                
                 total += subtotal;
-                if (count > 0) dataToSave[nilai] = count;
+                if (totalLembar > 0) dataToSave[nilai] = totalLembar;
             });
 
             const selisih = total - saldoAwal;
@@ -554,13 +585,23 @@ $totalPages = $totalPages ?? 1;
                 selisihEl.style.color = color;
             }
 
-            if (cardSelisihEl) {
-                if (total > 0) {
-                    cardSelisihEl.textContent = 'Selisih Pecahan: ' + formattedSelisih;
-                    cardSelisihEl.style.color = color;
-                } else {
-                    cardSelisihEl.textContent = '';
+            if (total > 0) {
+                if (pecahanSummaryEl) pecahanSummaryEl.textContent = 'Fisik: Rp ' + formattedTotal;
+                if (modalPecahanEl) modalPecahanEl.textContent = '| Fisik: Rp ' + formattedTotal;
+                if (modalSelisihEl) {
+                    modalSelisihEl.textContent = '(Selisih: ' + formattedSelisih + ')';
+                    modalSelisihEl.style.color = color;
                 }
+                
+                if (cardSelisihEl) {
+                    cardSelisihEl.textContent = 'Selisih: ' + formattedSelisih;
+                    cardSelisihEl.style.color = color;
+                }
+            } else {
+                if (pecahanSummaryEl) pecahanSummaryEl.textContent = '';
+                if (modalPecahanEl) modalPecahanEl.textContent = '';
+                if (modalSelisihEl) modalSelisihEl.textContent = '';
+                if (cardSelisihEl) cardSelisihEl.textContent = '';
             }
 
             return dataToSave;
@@ -569,49 +610,87 @@ $totalPages = $totalPages ?? 1;
         // Setup Pecahan Calculator logic
         document.querySelectorAll('.pecahan-container').forEach(function(container) {
             const vaultId = container.id.replace('pecahan-container-', '');
-            const inputs = container.querySelectorAll('.input-lembar');
+            const rows = container.querySelectorAll('.pecahan-row');
 
             // Load saved data from localStorage
             const savedData = localStorage.getItem('pecahan_vault_' + vaultId);
             if (savedData) {
                 try {
                     const parsed = JSON.parse(savedData);
-                    inputs.forEach(function(inp) {
-                        const nilai = inp.dataset.nilai;
+                    rows.forEach(function(row) {
+                        const kInput = row.querySelector('.input-kemarin');
+                        const nilai = kInput.dataset.nilai;
                         if (parsed[nilai] !== undefined) {
-                            inp.value = parsed[nilai];
+                            kInput.value = parsed[nilai];
                         }
                     });
                 } catch (e) {}
             }
 
+            // Enter key navigation
+            const hInputs = container.querySelectorAll('.input-hari-ini');
+            hInputs.forEach(function(input, index) {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const next = hInputs[index + 1];
+                        if (next) {
+                            next.focus();
+                        } else {
+                            // Jika sudah yang terakhir, mungkin fokus ke tombol simpan
+                            document.querySelector('.btn-success[onclick^="simpanPecahan"]').focus();
+                        }
+                    }
+                });
+            });
+
             // Initial hitung & update UI
             updateVaultSummary(vaultId);
 
-            inputs.forEach(function(input) {
-                input.addEventListener('input', function() {
-                    const dataToSave = updateVaultSummary(vaultId);
-                    localStorage.setItem('pecahan_vault_' + vaultId, JSON.stringify(dataToSave));
+            rows.forEach(function(row) {
+                const inputs = row.querySelectorAll('input');
+                inputs.forEach(function(input) {
+                    input.addEventListener('input', function() {
+                        updateVaultSummary(vaultId);
+                    });
                 });
             });
             
             window.resetPecahan = function(id) {
-                askConfirmation('Kosongkan hitungan pecahan ini?', function() {
+                askConfirmation('Kosongkan input hari ini saja?', function() {
                     const ctr = document.getElementById('pecahan-container-' + id);
                     if (ctr) {
-                        ctr.querySelectorAll('.input-lembar').forEach(function(inp) {
+                        ctr.querySelectorAll('.input-hari-ini').forEach(function(inp) {
                             inp.value = '';
                         });
-                        localStorage.removeItem('pecahan_vault_' + id);
                         updateVaultSummary(id);
                     }
-                }, 'Reset Pecahan', 'Ya, Kosongkan');
+                }, 'Reset Input', 'Ya, Kosongkan');
             };
 
             window.simpanPecahan = function(id) {
+                const dataToSave = updateVaultSummary(id); // Final sync and get data
+                localStorage.setItem('pecahan_vault_' + id, JSON.stringify(dataToSave));
+                
+                // Reset inputs 'Hari Ini' agar saat buka lagi sudah jadi 'Kemarin'
+                const ctr = document.getElementById('pecahan-container-' + id);
+                if (ctr) {
+                    const rows = ctr.querySelectorAll('.pecahan-row');
+                    rows.forEach(function(row) {
+                        const kInput = row.querySelector('.input-kemarin');
+                        const hInput = row.querySelector('.input-hari-ini');
+                        const nilai = kInput.dataset.nilai;
+                        
+                        const kCount = parseInt(kInput.value) || 0;
+                        const hCount = parseInt(hInput.value) || 0;
+                        
+                        kInput.value = kCount + hCount; // Akumulasi ke kemarin
+                        hInput.value = ''; // Kosongkan hari ini
+                    });
+                }
+                
                 togglePecahanModal(id, false);
-                updateVaultSummary(id); // Final sync
-                showToast('Data pecahan berhasil disimpan!');
+                showToast('Data pecahan berhasil disimpan dan diakumulasikan!');
             };
         });
 

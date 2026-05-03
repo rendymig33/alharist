@@ -34,6 +34,7 @@ class Dashboard_model extends Model
             FROM sale_items
             INNER JOIN sales ON sales.id = sale_items.sale_id
             LEFT JOIN items ON items.id = sale_items.item_id
+            LEFT JOIN debts ON debts.sale_id = sales.id
             WHERE sales.transaction_date = :transaction_date
         ";
     }
@@ -41,33 +42,34 @@ class Dashboard_model extends Model
     public function summary(?string $dateFrom = null, ?string $dateTo = null, ?int $vaultId = null): array
     {
         $params = [];
-        $salesSql = "SELECT COALESCE(SUM(subtotal), 0) FROM sales";
+        $salesSql = "SELECT COALESCE(SUM(subtotal), 0) FROM sales LEFT JOIN debts ON debts.sale_id = sales.id";
         $profitSql = $this->currentProfitSql();
 
-        $conditions = [];
+        $conditions = ["(sales.payment_type != 'Hutang' OR debts.status = 'Lunas')"];
         if (!empty($dateFrom)) {
-            $conditions[] = "transaction_date >= :date_from";
+            $conditions[] = "sales.transaction_date >= :date_from";
             $params['date_from'] = $dateFrom;
         }
         if (!empty($dateTo)) {
-            $conditions[] = "transaction_date <= :date_to";
+            $conditions[] = "sales.transaction_date <= :date_to";
             $params['date_to'] = $dateTo;
         }
 
         if (empty($dateFrom) && empty($dateTo)) {
             $today = date('Y-m-d');
-            $conditions[] = "transaction_date = :today";
+            $conditions[] = "sales.transaction_date = :today";
+            $conditions[] = "sales.created_at > :last_closing";
             $params['today'] = $today;
+            $params['last_closing'] = $this->getLastClosingAt();
         }
 
         if ($vaultId > 0) {
-            $salesSql .= " WHERE " . implode(' AND ', $conditions) . " AND vault_id = :vault_id";
-            // For profit, we need to handle the join in currentProfitSql
-            $profitSql = str_replace('WHERE sales.transaction_date = :transaction_date', "WHERE " . implode(' AND ', str_replace('transaction_date', 'sales.transaction_date', $conditions)) . " AND sales.vault_id = :vault_id", $profitSql);
+            $salesSql .= " WHERE " . implode(' AND ', $conditions) . " AND sales.vault_id = :vault_id";
+            $profitSql = str_replace('WHERE sales.transaction_date = :transaction_date', "WHERE " . implode(' AND ', $conditions) . " AND sales.vault_id = :vault_id", $profitSql);
             $params['vault_id'] = $vaultId;
         } else {
             $salesSql .= " WHERE " . implode(' AND ', $conditions);
-            $profitSql = str_replace('WHERE sales.transaction_date = :transaction_date', "WHERE " . implode(' AND ', str_replace('transaction_date', 'sales.transaction_date', $conditions)), $profitSql);
+            $profitSql = str_replace('WHERE sales.transaction_date = :transaction_date', "WHERE " . implode(' AND ', $conditions), $profitSql);
         }
 
         $salesStmt = $this->db->prepare($salesSql);
@@ -127,9 +129,10 @@ class Dashboard_model extends Model
             FROM sales
             LEFT JOIN sale_items ON sale_items.sale_id = sales.id
             LEFT JOIN items ON items.id = sale_items.item_id
+            LEFT JOIN debts ON debts.sale_id = sales.id
         ";
 
-        $conditions = [];
+        $conditions = ["(sales.payment_type != 'Hutang' OR debts.status = 'Lunas')"];
         $params = [];
 
         if (!empty($dateFrom)) {
@@ -143,7 +146,9 @@ class Dashboard_model extends Model
 
         if (empty($dateFrom) && empty($dateTo)) {
             $conditions[] = "sales.transaction_date = :today";
+            $conditions[] = "sales.created_at > :last_closing";
             $params['today'] = date('Y-m-d');
+            $params['last_closing'] = $this->getLastClosingAt();
         }
 
         if (!empty($conditions)) {

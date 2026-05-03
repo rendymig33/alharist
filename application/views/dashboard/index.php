@@ -417,7 +417,7 @@ $totalPages = $totalPages ?? 1;
         <div class="metric" style="color: #064e3b;"><?= rupiah($summary['profit']) ?></div>
     </div>
     <div class="card">
-        <div class="small" style="font-weight: 700; color: #64748b;">SALDO BERANGKAS</div>
+        <div class="small" style="font-weight: 700; color: #64748b;">MODAL CASIER</div>
         <div class="metric" style="color: #1e293b;"><?= rupiah($summary['vault']) ?></div>
     </div>
     <div class="card">
@@ -442,11 +442,11 @@ $totalPages = $totalPages ?? 1;
             <input type="hidden" name="route" value="dashboard">
             <div class="filter-field">
                 <div class="small">Tanggal Dari</div>
-                <input type="date" name="date_from" value="<?= htmlspecialchars((string) ($filterDateFrom ?? '')) ?>">
+                <input type="date" name="date_from" value="<?= date('Y-m-d') ?>">
             </div>
             <div class="filter-field">
                 <div class="small">Tanggal Sampai</div>
-                <input type="date" name="date_to" value="<?= htmlspecialchars((string) ($filterDateTo ?? '')) ?>">
+                <input type="date" name="date_to" value="<?= date('Y-m-d') ?>">
             </div>
             <div class="filter-actions">
                 <button type="submit">Filter</button>

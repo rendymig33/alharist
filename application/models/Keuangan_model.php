@@ -235,7 +235,8 @@ class Keuangan_model extends Model
             FROM sale_items
             INNER JOIN sales ON sales.id = sale_items.sale_id
             LEFT JOIN vaults ON vaults.id = COALESCE(sale_items.vault_id, sales.vault_id)
-            WHERE sale_items.vault_id = :vault_id OR sales.vault_id = :vault_id
+            WHERE (sale_items.vault_id = :vault_id OR sales.vault_id = :vault_id)
+            AND sales.payment_type != 'Hutang'
         ");
         $salesStatement->execute(['vault_id' => $vaultId]);
         $salesRows = $salesStatement->fetchAll(PDO::FETCH_ASSOC);
@@ -368,6 +369,15 @@ class Keuangan_model extends Model
             'amount' => $paymentAmount,
             'id' => $debtId,
         ]);
+
+        // Jika lunas, update tanggal transaksi di sales agar muncul di history tgl berjalan
+        if ($paymentAmount + (float) $debt['paid_amount'] >= (float) $debt['total_debt']) {
+            $updateSaleDate = $this->db->prepare("UPDATE sales SET transaction_date = :today WHERE id = :sale_id");
+            $updateSaleDate->execute([
+                'today' => date('Y-m-d'),
+                'sale_id' => $debt['sale_id'],
+            ]);
+        }
 
         $this->updateVaultBalance($vaultId, $paymentAmount);
         $this->db->commit();

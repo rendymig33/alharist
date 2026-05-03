@@ -121,7 +121,7 @@
         .clock-time {
             font-size: 24px;
             font-weight: 800;
-            color: #020105;
+            color: #d71920;
             line-height: 1;
             font-family: 'JetBrains Mono', 'Courier New', monospace;
             text-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
@@ -1047,7 +1047,20 @@
                 <a class="<?= active_menu('keuangan/hutang', $currentRoute) ?>" href="index.php?route=keuangan/hutang">Utang</a>
                 <a class="<?= active_menu('keuangan/brankas', $currentRoute) ?>" href="index.php?route=keuangan/brankas">Brankas</a>
                 <a class="<?= active_menu('importexport', $currentRoute) ?>" href="index.php?route=importexport">Import Export</a>
+                
+                <div style="margin-top: auto; padding: 20px 0;">
+                    <button type="button" class="btn btn-danger" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: #be123c; border: none; font-weight: 800; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(190, 18, 60, 0.2);" onclick="handleCloseTransaksi()">
+                        <span style="font-size: 18px;">🔒</span> CLOSE TRANSAKSI
+                    </button>
+                </div>
             </nav>
+            <script>
+                function handleCloseTransaksi() {
+                    askConfirmation('Selesaikan semua transaksi dan tutup sesi hari ini?', function() {
+                        window.location.href = 'index.php?route=dashboard/close';
+                    }, 'Tutup Transaksi', 'Ya, Tutup Sesi', 'btn-danger');
+                }
+            </script>
         </aside>
         <main class="content">
             <div class="topbar">

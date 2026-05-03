@@ -46,4 +46,12 @@ class Dashboard_controller extends Controller
             'flash' => flash(),
         ]);
     }
+
+    public function close(): void
+    {
+        $dashboardModel = $this->model('Dashboard_model');
+        $dashboardModel->closeTransaction();
+        flash('Transaksi hari ini telah berhasil ditutup. Statistik dashboard telah direset.', 'success');
+        $this->redirect('dashboard');
+    }
 }
