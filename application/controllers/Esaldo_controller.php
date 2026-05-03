@@ -49,13 +49,31 @@ class Esaldo_controller extends Controller
             $this->redirect('esaldo');
         }
 
+        if ($isAjax && isset($_GET['history'])) {
+            $history = $model->getHistory((int) $_GET['history']);
+            header('Content-Type: application/json');
+            echo json_encode($history);
+            exit;
+        }
+
         if (!empty($_GET['edit'])) {
             $editEsaldo = $model->findBalance((int) $_GET['edit']);
         }
 
+        $all_esaldos = $model->allBalances();
+        $limit = 5;
+        $totalItems = count($all_esaldos);
+        $totalPages = (int) ceil($totalItems / $limit);
+        $currentPage = max(1, min((int) ($_GET['p'] ?? 1), max(1, $totalPages)));
+        $offset = ($currentPage - 1) * $limit;
+        $esaldos = array_slice($all_esaldos, $offset, $limit);
+
         $this->view('esaldo/index', [
             'title' => 'E-Saldo',
-            'esaldos' => $model->allBalances(),
+            'esaldos' => $esaldos,
+            'totalItems' => $totalItems,
+            'totalPages' => $totalPages,
+            'currentPage' => $currentPage,
             'editEsaldo' => $editEsaldo,
             'flash' => flash(),
         ]);

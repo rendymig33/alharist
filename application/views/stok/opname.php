@@ -177,6 +177,47 @@ $totalPages = $totalPages ?? 1;
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
+
+    /* Rekening Koran Style */
+    .ledger-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 13px;
+    }
+    .ledger-table th {
+        background: #f9fafb;
+        padding: 12px 10px;
+        text-align: left;
+        border-bottom: 2px solid #eaecf0;
+        color: #475467;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .ledger-table td {
+        padding: 14px 10px;
+        border-bottom: 1px solid #eaecf0;
+        vertical-align: top;
+    }
+    .ledger-date {
+        color: #667085;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .ledger-desc {
+        font-weight: 600;
+        color: #1d2939;
+        margin-bottom: 4px;
+    }
+    .ledger-detail {
+        font-size: 11px;
+        color: #667085;
+    }
+    .ledger-val {
+        font-weight: 800;
+        text-align: right;
+    }
 </style>
 
 <div class="stok-grid">
@@ -224,43 +265,12 @@ $totalPages = $totalPages ?? 1;
                 </div>
             </form>
 
-            <div class="opname-history-list">
-                <div class="section-title" style="margin-bottom:0;">History Koreksi</div>
-                <?php if (!empty($selectedHistory)): ?>
-                    <?php foreach ($selectedHistory as $index => $row): ?>
-                        <?php
-                        $historySmallQty = max(1, (int) ($row['small_unit_qty'] ?? 1));
-                        $beforeDisplay = format_stock_breakdown((int) ($row['before_stock'] ?? 0), (string) ($row['unit_large'] ?? 'Bungkus'), (string) ($row['unit_small'] ?? 'Pcs'), $historySmallQty);
-                        $actualDisplay = format_stock_breakdown((int) ($row['actual_stock'] ?? 0), (string) ($row['unit_large'] ?? 'Bungkus'), (string) ($row['unit_small'] ?? 'Pcs'), $historySmallQty);
-                        $isLatestHistory = $index === 0;
-                        ?>
-                        <div class="opname-history-item">
-                            <div class="opname-history-head">
-                                <strong><?= htmlspecialchars((string) ($row['transaction_date'] ?? '-')) ?></strong>
-                                <div class="opname-history-actions">
-                                    <span class="badge">Selisih <?= format_qty((float) ($row['adjustment'] ?? 0)) ?></span>
-                                    <?php if ($isLatestHistory): ?>
-                                        <form method="post" class="opname-delete-form" onsubmit="return confirm('Hapus history stok opname ini? Stok akan dikembalikan ke nilai sebelum koreksi.');">
-                                            <input type="hidden" name="action" value="delete_opname">
-                                            <input type="hidden" name="item_id" value="<?= (int) ($selectedItem['id'] ?? 0) ?>">
-                                            <input type="hidden" name="opname_id" value="<?= (int) ($row['id'] ?? 0) ?>">
-                                            <button type="submit" class="btn btn-danger opname-delete-btn">Delete</button>
-                                        </form>
-                                    <?php else: ?>
-                                        <span class="small" style="color:#98a2b3; font-weight:700;">Terkunci</span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <div class="small" style="margin-top:8px;">Sebelum: <?= htmlspecialchars($beforeDisplay) ?></div>
-                            <div class="small" style="margin-top:4px;">Aktual: <?= htmlspecialchars($actualDisplay) ?></div>
-                            <div class="small" style="margin-top:4px;">Catatan: <?= htmlspecialchars((string) (($row['notes'] ?? '') !== '' ? $row['notes'] : '-')) ?></div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="info-strip">
-                        <div class="small">Belum ada history koreksi untuk barang ini. Kalau ada penjualan atau perubahan stok, perbedaannya akan terlihat saat opname berikutnya.</div>
-                    </div>
-                <?php endif; ?>
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px dashed var(--line); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div class="section-title" style="margin: 0;">History Koreksi</div>
+                    <div class="small">Klik tombol samping untuk melihat riwayat lengkap.</div>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="toggleHistoryModal(true)">Lihat History</button>
             </div>
         <?php else: ?>
             <div class="info-strip">
@@ -359,3 +369,81 @@ $totalPages = $totalPages ?? 1;
         <?php endif; ?>
     </div>
 </div>
+
+<?php if (!empty($selectedItem)): ?>
+<div class="modal-backdrop" id="history-modal">
+    <div class="modal" style="width: min(900px, 100%);">
+        <div class="modal-head">
+            <h3 style="margin:0;">History Koreksi: <?= htmlspecialchars((string) $selectedItem['name']) ?></h3>
+            <button type="button" class="modal-close" onclick="toggleHistoryModal(false)">Tutup</button>
+        </div>
+        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid #eaecf0; border-radius: 12px;">
+            <div class="stok-list-wrap">
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Keterangan</th>
+                            <th style="text-align:right;">Analisa</th>
+                            <th style="text-align:right;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($selectedHistory)): ?>
+                            <?php foreach ($selectedHistory as $index => $row): ?>
+                                <?php
+                                $historySmallQty = max(1, (int) ($row['small_unit_qty'] ?? 1));
+                                $beforeDisplay = format_stock_breakdown((int) ($row['before_stock'] ?? 0), (string) ($row['unit_large'] ?? 'Bungkus'), (string) ($row['unit_small'] ?? 'Pcs'), $historySmallQty);
+                                $actualDisplay = format_stock_breakdown((int) ($row['actual_stock'] ?? 0), (string) ($row['unit_large'] ?? 'Bungkus'), (string) ($row['unit_small'] ?? 'Pcs'), $historySmallQty);
+                                $adj = (float)($row['adjustment'] ?? 0);
+                                $isLatestHistory = $index === 0;
+                                ?>
+                                <tr>
+                                    <td class="ledger-date"><?= htmlspecialchars((string) ($row['transaction_date'] ?? '-')) ?></td>
+                                    <td>
+                                        <div class="ledger-desc"><?= htmlspecialchars((string) (($row['notes'] ?? '') !== '' ? $row['notes'] : 'Koreksi Stok')) ?></div>
+                                        <div class="ledger-detail">
+                                            <span>Sebelum: <?= htmlspecialchars($beforeDisplay) ?></span> &rarr; 
+                                            <span>Aktual: <?= htmlspecialchars($actualDisplay) ?></span>
+                                        </div>
+                                    </td>
+                                    <td class="ledger-val">
+                                        <?php if ($adj > 0): ?>
+                                            <span class="badge" style="background:#ecfdf3; color:#027a48; font-weight: 800;">Lebih (+<?= format_qty($adj) ?>)</span>
+                                        <?php else: ?>
+                                            <span class="badge" style="background:#fff1f1; color:#b42318; font-weight: 800;">Kurang (<?= format_qty($adj) ?>)</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <?php if ($isLatestHistory): ?>
+                                            <form method="post" class="opname-delete-form" onsubmit="return confirm('Hapus history stok opname ini? Stok akan dikembalikan ke nilai sebelum koreksi.');">
+                                                <input type="hidden" name="action" value="delete_opname">
+                                                <input type="hidden" name="item_id" value="<?= (int) ($selectedItem['id'] ?? 0) ?>">
+                                                <input type="hidden" name="opname_id" value="<?= (int) ($row['id'] ?? 0) ?>">
+                                                <button type="submit" class="btn btn-danger" style="padding: 6px 10px; font-size: 11px;">Hapus</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <span class="small" style="color:#98a2b3; font-weight:700;">Terkunci</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="4" style="text-align:center; padding: 40px; color: #667085;">Belum ada riwayat koreksi.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<script>
+    function toggleHistoryModal(show) {
+        const modal = document.getElementById('history-modal');
+        if (modal) modal.classList.toggle('active', show);
+    }
+</script>

@@ -133,4 +133,24 @@ class Esaldo_model extends Model
         $statement = $this->db->prepare("DELETE FROM items WHERE id = :id AND category = 'E-SALDO'");
         return $statement->execute(['id' => $id]);
     }
+
+    public function getHistory(int $esaldoId): array
+    {
+        $sql = "
+            SELECT 
+                s.invoice_no,
+                s.transaction_date as date,
+                si.qty,
+                si.selling_price as price,
+                si.line_total as total,
+                COALESCE(s.notes, '') as notes
+            FROM sale_items si
+            JOIN sales s ON s.id = si.sale_id
+            WHERE si.item_id = :id
+            ORDER BY s.transaction_date DESC, s.id DESC
+        ";
+        $statement = $this->db->prepare($sql);
+        $statement->execute(['id' => $esaldoId]);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

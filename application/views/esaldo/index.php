@@ -1,4 +1,8 @@
-<?php $flashData = flash(); ?>
+<?php 
+$flashData = flash(); 
+$currentPage = $currentPage ?? 1;
+$totalPages = $totalPages ?? 1;
+?>
 
 <style>
     .esaldo-hero {
@@ -191,6 +195,87 @@
             width: 100%;
         }
     }
+
+    /* Ledger Style */
+    .ledger-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 13px;
+    }
+    .ledger-table th {
+        background: #f9fafb;
+        padding: 12px 10px;
+        text-align: left;
+        border-bottom: 2px solid #eaecf0;
+        color: #475467;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .ledger-table td {
+        padding: 14px 10px;
+        border-bottom: 1px solid #eaecf0;
+        vertical-align: top;
+    }
+    .ledger-date {
+        color: #667085;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .ledger-desc {
+        font-weight: 600;
+        color: #1d2939;
+        margin-bottom: 4px;
+    }
+    .ledger-detail {
+        font-size: 11px;
+        color: #667085;
+    }
+    .ledger-val {
+        font-weight: 800;
+        text-align: right;
+    }
+
+    /* Pagination */
+    .pagination-wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+    }
+
+    .pagination-info {
+        font-size: 13px;
+        font-weight: 700;
+        color: #667085;
+        background: #f9fafb;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+    }
+
+    .btn-pagination {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: #344054;
+    }
+
+    .btn-pagination:hover:not(:disabled) {
+        background: #f9fafb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
 </style>
 
 <?php if (!empty($flashData)): ?>
@@ -217,14 +302,35 @@
                         </div>
                     </div>
                     <div class="esaldo-card-balance"><?= rupiah((float) $esaldo['balance']) ?></div>
-                    <div class="small" style="margin-bottom:14px;">Saldo aktif pada E-Saldo ini.</div>
+                    <div class="small" style="margin-bottom:14px;">Saldo aktif saat ini.</div>
                     <div class="action-row">
+                        <button type="button" class="btn btn-info view-history-btn" data-id="<?= (int) $esaldo['id'] ?>" data-name="<?= htmlspecialchars((string) $esaldo['name']) ?>">Transaksi</button>
                         <button type="button" class="btn btn-secondary edit-esaldo-btn" data-id="<?= (int) $esaldo['id'] ?>" data-name="<?= htmlspecialchars((string) $esaldo['name']) ?>" data-balance="<?= htmlspecialchars(number_format((float) $esaldo['balance'], 0, ',', '.')) ?>">Edit</button>
                         <button type="button" class="btn btn-danger delete-esaldo-btn" data-id="<?= (int) $esaldo['id'] ?>">Delete</button>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
+
+        <?php if ($totalPages > 1): ?>
+            <div class="pagination-wrap">
+                <div class="pagination-info">
+                    Halaman <?= $currentPage ?> dari <?= $totalPages ?>
+                </div>
+                <div class="pagination-btns" style="display:flex; gap:8px;">
+                    <?php if ($currentPage > 1): ?>
+                        <a href="index.php?route=esaldo&p=<?= $currentPage - 1 ?>" class="btn-pagination">
+                            &larr; Prev
+                        </a>
+                    <?php endif; ?>
+                    <?php if ($currentPage < $totalPages): ?>
+                        <a href="index.php?route=esaldo&p=<?= $currentPage + 1 ?>" class="btn-pagination">
+                            Next &rarr;
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
     <?php else: ?>
         <div class="esaldo-empty">
             <div class="esaldo-empty-icon">📭</div>
@@ -270,6 +376,23 @@
 
             <div style="margin-top:12px;"><button type="submit">Simpan Saldo</button></div>
         </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="history-modal">
+    <div class="modal" style="width:min(880px, 100%);">
+        <div class="modal-head">
+            <div>
+                <div class="section-title">Riwayat Transaksi E-Saldo</div>
+                <h3 style="margin:0;" id="history-modal-title">-</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="toggleHistoryModal(false)">Tutup</button>
+        </div>
+        <div class="card" style="margin-top:0; padding:0; border:none; box-shadow:none;">
+            <div id="history-content" style="max-height: 60vh; overflow-y: auto; padding: 20px;">
+                <div class="small">Sedang memuat data...</div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -325,7 +448,7 @@
                     setTimeout(() => {
                         successMsg.remove();
                         window.location.reload();
-                    }, 1500);
+                    }, 300);
                 } else {
                     const errorMsg = document.createElement('div');
                     errorMsg.className = 'alert alert-danger';
@@ -414,6 +537,74 @@
                     setTimeout(() => errorMsg.remove(), 3000);
                     button.disabled = false;
                     button.textContent = originalText;
+                }
+            });
+        });
+
+        // History Functionality
+        const historyModal = document.getElementById('history-modal');
+        const historyContent = document.getElementById('history-content');
+        const historyTitle = document.getElementById('history-modal-title');
+
+        window.toggleHistoryModal = function(show) {
+            historyModal.classList.toggle('active', show);
+        };
+
+        document.querySelectorAll('.view-history-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                historyTitle.textContent = name;
+                historyContent.innerHTML = '<div class="small">Sedang memuat data...</div>';
+                toggleHistoryModal(true);
+
+                try {
+                    const response = await fetch(`index.php?route=esaldo&history=${id}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const data = await response.json();
+
+                    if (!data || data.length === 0) {
+                        historyContent.innerHTML = '<div class="esaldo-empty" style="padding:40px 0;"><p>Belum ada riwayat transaksi untuk saldo ini.</p></div>';
+                        return;
+                    }
+
+                    let html = `
+                        <table class="ledger-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal / No. Invoice</th>
+                                    <th>Keterangan</th>
+                                    <th style="text-align:right;">Nominal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    data.forEach(item => {
+                        html += `
+                            <tr>
+                                <td class="ledger-date">
+                                    <div class="ledger-desc" style="margin-bottom:2px;">${item.date}</div>
+                                    <div class="small">${item.invoice_no}</div>
+                                </td>
+                                <td>
+                                    <div class="ledger-desc">Penggunaan Saldo</div>
+                                    <div class="ledger-detail">${item.notes || 'Transaksi Penjualan'}</div>
+                                    <div class="small" style="margin-top:4px;">Qty: ${item.qty} x ${Number(item.price).toLocaleString('id-ID')}</div>
+                                </td>
+                                <td class="ledger-val">
+                                    <div style="color: #d71920;">- ${Number(item.total).toLocaleString('id-ID')}</div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table>';
+                    historyContent.innerHTML = html;
+
+                } catch (error) {
+                    historyContent.innerHTML = `<div class="alert alert-danger">Gagal memuat data: ${error.message}</div>`;
                 }
             });
         });

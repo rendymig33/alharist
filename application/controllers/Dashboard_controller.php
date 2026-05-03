@@ -23,10 +23,21 @@ class Dashboard_controller extends Controller
 
         $selectedDateHistory = $viewDate !== '' ? $transactionModel->salesHistoryByDate($viewDate) : [];
 
+        $all_latest_sales = $transactionModel->salesSummaryByDate($dateFrom ?: null, $dateTo ?: null, 100);
+        $limit = 5;
+        $totalItems = count($all_latest_sales);
+        $totalPages = (int) ceil($totalItems / $limit);
+        $currentPage = max(1, min((int) ($_GET['p'] ?? 1), max(1, $totalPages)));
+        $offset = ($currentPage - 1) * $limit;
+        $latestSales = array_slice($all_latest_sales, $offset, $limit);
+
         $this->view('dashboard/index', [
             'title' => 'Dashboard',
             'summary' => $dashboardModel->summary($dateFrom ?: null, $dateTo ?: null, null),
-            'latestSales' => $transactionModel->salesSummaryByDate($dateFrom ?: null, $dateTo ?: null, 20),
+            'latestSales' => $latestSales,
+            'totalItems' => $totalItems,
+            'totalPages' => $totalPages,
+            'currentPage' => $currentPage,
             'filterDateFrom' => $dateFrom,
             'filterDateTo' => $dateTo,
             'selectedViewDate' => $viewDate,

@@ -12,7 +12,51 @@ $summary = array_merge([
     'debts' => 0,
 ], $summary ?? []);
 ?>
+<?php
+$currentPage = $currentPage ?? 1;
+$totalPages = $totalPages ?? 1;
+?>
 <style>
+    /* Pagination */
+    .pagination-wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+    }
+
+    .pagination-info {
+        font-size: 13px;
+        font-weight: 700;
+        color: #667085;
+        background: #f9fafb;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+    }
+
+    .btn-pagination {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: #344054;
+    }
+
+    .btn-pagination:hover:not(:disabled) {
+        background: #f9fafb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
     .dashboard-transactions {
         margin-top: 18px;
     }
@@ -446,6 +490,36 @@ $summary = array_merge([
                 </tbody>
             </table>
         </div>
+
+        <?php if ($totalPages > 1): ?>
+            <div class="pagination-wrap">
+                <div class="pagination-info">
+                    Halaman <?= $currentPage ?> dari <?= $totalPages ?>
+                </div>
+                <div class="pagination-btns" style="display:flex; gap:8px;">
+                    <?php
+                    $prevParams = ['route' => 'dashboard', 'p' => $currentPage - 1];
+                    if (!empty($filterDateFrom)) $prevParams['date_from'] = $filterDateFrom;
+                    if (!empty($filterDateTo)) $prevParams['date_to'] = $filterDateTo;
+                    $nextParams = ['route' => 'dashboard', 'p' => $currentPage + 1];
+                    if (!empty($filterDateFrom)) $nextParams['date_from'] = $filterDateFrom;
+                    if (!empty($filterDateTo)) $nextParams['date_to'] = $filterDateTo;
+                    ?>
+
+                    <?php if ($currentPage > 1): ?>
+                        <a href="index.php?<?= http_build_query($prevParams) ?>" class="btn-pagination">
+                            &larr; Prev
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if ($currentPage < $totalPages): ?>
+                        <a href="index.php?<?= http_build_query($nextParams) ?>" class="btn-pagination">
+                            Next &rarr;
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

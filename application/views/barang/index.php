@@ -1,3 +1,7 @@
+<?php
+$currentPage = $currentPage ?? 1;
+$totalPages = $totalPages ?? 1;
+?>
 <style>
     .barang-modal {
         width: min(1180px, 100%);
@@ -251,10 +255,6 @@
             line-height: 1.45;
         }
 
-        .barang-modal .modal-head {
-            align-items: flex-start;
-        }
-
         .barang-modal .modal-head h3 {
             font-size: 18px;
             line-height: 1.35;
@@ -268,6 +268,46 @@
         .barang-search .reset-btn {
             min-height: 44px;
         }
+    }
+
+    .pagination-wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+    }
+
+    .pagination-info {
+        font-size: 13px;
+        font-weight: 700;
+        color: #667085;
+        background: #f9fafb;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+    }
+
+    .pagination-btns {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-pagination {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-pagination:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 </style>
 <div class="toolbar">
@@ -348,6 +388,35 @@
             </tbody>
         </table>
     </div>
+
+    <?php if ($totalPages > 1): ?>
+        <div class="pagination-wrap">
+            <div class="pagination-info">
+                Halaman <?= $currentPage ?> dari <?= $totalPages ?>
+            </div>
+            <div class="pagination-btns">
+                <?php
+                $prevQuery = ['route' => 'barang', 'p' => $currentPage - 1];
+                if (!empty($keyword)) $prevQuery['q'] = $keyword;
+
+                $nextQuery = ['route' => 'barang', 'p' => $currentPage + 1];
+                if (!empty($keyword)) $nextQuery['q'] = $keyword;
+                ?>
+
+                <?php if ($currentPage > 1): ?>
+                    <a href="index.php?<?= http_build_query($prevQuery) ?>" class="btn btn-secondary btn-pagination">
+                        <span>&larr;</span> Prev
+                    </a>
+                <?php endif; ?>
+
+                <?php if ($currentPage < $totalPages): ?>
+                    <a href="index.php?<?= http_build_query($nextQuery) ?>" class="btn btn-secondary btn-pagination">
+                        Next <span>&rarr;</span>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>
 
 <div class="modal-backdrop <?= !empty($editItem) ? 'active' : '' ?>" id="barang-modal">

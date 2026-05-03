@@ -101,11 +101,21 @@ class Barang_controller extends Controller
         }
 
         $nextCode = !empty($editItem['code']) ? (string) $editItem['code'] : $model->nextCode();
-        $items = $model->search($keyword);
+        $all_items = $model->search($keyword);
+        
+        $limit = 5;
+        $totalItems = count($all_items);
+        $totalPages = (int) ceil($totalItems / $limit);
+        $currentPage = max(1, min((int) ($_GET['p'] ?? 1), max(1, $totalPages)));
+        $offset = ($currentPage - 1) * $limit;
+        $items = array_slice($all_items, $offset, $limit);
 
         $this->view('barang/index', [
             'title' => 'Master Data Barang',
             'items' => $items,
+            'totalItems' => $totalItems,
+            'totalPages' => $totalPages,
+            'currentPage' => $currentPage,
             'editItem' => $editItem,
             'viewItem' => $viewItem,
             'nextCode' => $nextCode,

@@ -81,14 +81,21 @@ class Keuangan_controller extends Controller
             $this->redirect('keuangan/brankas');
         }
 
-        $vaults = $model->allVaults($keyword);
-        $totalBalance = array_sum(array_map(fn(array $vault): float => (float) ($vault['balance'] ?? 0), $model->allVaults()));
-        $filteredBalance = array_sum(array_map(fn(array $vault): float => (float) ($vault['balance'] ?? 0), $vaults));
+        $all_vaults = $model->allVaults($keyword);
+        $limit = 6;
+        $totalItems = count($all_vaults);
+        $totalPages = (int) ceil($totalItems / $limit);
+        $currentPage = max(1, min((int) ($_GET['p'] ?? 1), max(1, $totalPages)));
+        $offset = ($currentPage - 1) * $limit;
+        $vaults = array_slice($all_vaults, $offset, $limit);
+
+        $totalBalance = array_sum(array_map(fn(array $v): float => (float) ($v['balance'] ?? 0), $model->allVaults()));
+        $filteredBalance = array_sum(array_map(fn(array $v): float => (float) ($v['balance'] ?? 0), $all_vaults));
 
         if (!empty($_GET['edit'])) {
-            foreach ($model->allVaults() as $vault) {
-                if ((int) $vault['id'] === (int) $_GET['edit']) {
-                    $editVault = $vault;
+            foreach ($all_vaults as $v) {
+                if ((int) $v['id'] === (int) $_GET['edit']) {
+                    $editVault = $v;
                     break;
                 }
             }
@@ -97,14 +104,17 @@ class Keuangan_controller extends Controller
         $this->view('keuangan/brankas', [
             'title' => 'Brankas',
             'vaults' => $vaults,
+            'totalItems' => $totalItems,
+            'totalPages' => $totalPages,
+            'currentPage' => $currentPage,
             'editVault' => $editVault,
             'keyword' => $keyword,
             'totalBalance' => $totalBalance,
             'filteredBalance' => $filteredBalance,
             'activeTransactionVaultId' => $activeTransactionVaultId,
             'flash' => flash(),
-            'transactionsByVault' => array_reduce($vaults, function (array $carry, array $vault) use ($model): array {
-                $carry[(int) $vault['id']] = $model->transactionsByVault((int) $vault['id']);
+            'transactionsByVault' => array_reduce($vaults, function (array $carry, array $v) use ($model): array {
+                $carry[(int) $v['id']] = $model->transactionsByVault((int) $v['id']);
                 return $carry;
             }, []),
         ]);
@@ -152,9 +162,20 @@ class Keuangan_controller extends Controller
             $this->redirect('keuangan/hutang');
         }
 
+        $all_debts = $model->debts($keyword);
+        $limit = 5;
+        $totalItems = count($all_debts);
+        $totalPages = (int) ceil($totalItems / $limit);
+        $currentPage = max(1, min((int) ($_GET['p'] ?? 1), max(1, $totalPages)));
+        $offset = ($currentPage - 1) * $limit;
+        $debts = array_slice($all_debts, $offset, $limit);
+
         $this->view('keuangan/hutang', [
             'title' => 'Pencatatan Utang',
-            'debts' => $model->debts($keyword),
+            'debts' => $debts,
+            'totalItems' => $totalItems,
+            'totalPages' => $totalPages,
+            'currentPage' => $currentPage,
             'vaults' => $model->allVaults(),
             'customers' => $this->model('Pelanggan_model')->all(),
             'keyword' => $keyword,

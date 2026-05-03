@@ -185,6 +185,47 @@ $totalPages = $totalPages ?? 1;
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
+
+    /* Rekening Koran Style */
+    .ledger-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 13px;
+    }
+    .ledger-table th {
+        background: #f9fafb;
+        padding: 12px 10px;
+        text-align: left;
+        border-bottom: 2px solid #eaecf0;
+        color: #475467;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .ledger-table td {
+        padding: 14px 10px;
+        border-bottom: 1px solid #eaecf0;
+        vertical-align: top;
+    }
+    .ledger-date {
+        color: #667085;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .ledger-desc {
+        font-weight: 600;
+        color: #1d2939;
+        margin-bottom: 4px;
+    }
+    .ledger-detail {
+        font-size: 11px;
+        color: #667085;
+    }
+    .ledger-val {
+        font-weight: 800;
+        text-align: right;
+    }
 </style>
 
 <div class="stok-grid">
@@ -241,40 +282,12 @@ $totalPages = $totalPages ?? 1;
                 </div>
             </form>
 
-            <div class="receive-history-list">
-                <div class="section-title" style="margin-bottom:0;">History Receive</div>
-                <?php if (!empty($selectedHistory)): ?>
-                    <?php foreach ($selectedHistory as $row): ?>
-                        <?php
-                        $historySmallQty = max(1, (int) ($row['small_unit_qty'] ?? 1));
-                        $historyLargeQty = (int) ($row['qty_large'] ?? 0);
-                        $historySmallRemainder = (int) ($row['qty_small'] ?? 0);
-                        $historyEffectiveLargeQty = ((float) ($row['qty_total'] ?? 0)) / $historySmallQty;
-                        ?>
-                        <div class="receive-history-item">
-                            <div class="receive-history-head">
-                                <strong><?= htmlspecialchars((string) ($row['transaction_date'] ?? '-')) ?></strong>
-                                <div class="receive-history-actions">
-                                    <span class="badge">Total <?= rupiah((float) ($row['purchase_total'] ?? 0)) ?></span>
-                                    <form method="post" class="receive-delete-form" onsubmit="return confirm('Hapus history receive ini? Stok barang akan dikurangi kembali.');">
-                                        <input type="hidden" name="action" value="delete_receive">
-                                        <input type="hidden" name="item_id" value="<?= (int) ($selectedItem['id'] ?? 0) ?>">
-                                        <input type="hidden" name="receive_id" value="<?= (int) ($row['id'] ?? 0) ?>">
-                                        <button type="submit" class="btn btn-danger receive-delete-btn">Delete</button>
-                                    </form>
-                                </div>
-                            </div>
-                            <div class="small" style="margin-top:8px;">Qty masuk: <?= $historyLargeQty ?> <?= htmlspecialchars((string) ($row['unit_large'] ?? 'Bungkus')) ?><?= $historySmallRemainder > 0 ? ' ' . $historySmallRemainder . ' ' . htmlspecialchars((string) ($row['unit_small'] ?? 'Pcs')) : '' ?></div>
-                            <div class="small" style="margin-top:4px;">Harga beli di struk: <?= rupiah((float) ($row['purchase_price'] ?? 0)) ?></div>
-                            <div class="small" style="margin-top:4px;">Rumus total: <?= format_qty($historyEffectiveLargeQty) ?> x <?= rupiah((float) ($row['purchase_price'] ?? 0)) ?> = <?= rupiah((float) ($row['purchase_total'] ?? 0)) ?></div>
-                            <div class="small" style="margin-top:4px;">Catatan: <?= htmlspecialchars((string) (($row['notes'] ?? '') !== '' ? $row['notes'] : '-')) ?></div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="info-strip">
-                        <div class="small">Belum ada history receive untuk barang ini.</div>
-                    </div>
-                <?php endif; ?>
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px dashed var(--line); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div class="section-title" style="margin: 0;">History Receive</div>
+                    <div class="small">Klik tombol samping untuk melihat riwayat lengkap.</div>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="toggleHistoryModal(true)">Lihat History</button>
             </div>
         <?php else: ?>
             <div class="info-strip">
@@ -374,7 +387,83 @@ $totalPages = $totalPages ?? 1;
     </div>
 </div>
 
+<?php if (!empty($selectedItem)): ?>
+<div class="modal-backdrop" id="history-modal">
+    <div class="modal" style="width: min(900px, 100%);">
+        <div class="modal-head">
+            <h3 style="margin:0;">History Receive: <?= htmlspecialchars((string) $selectedItem['name']) ?></h3>
+            <button type="button" class="modal-close" onclick="toggleHistoryModal(false)">Tutup</button>
+        </div>
+        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid #eaecf0; border-radius: 12px;">
+            <div class="stok-list-wrap">
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Keterangan</th>
+                            <th style="text-align:right;">Analisa Harga</th>
+                            <th style="text-align:right;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($selectedHistory)): ?>
+                            <?php foreach ($selectedHistory as $index => $row): ?>
+                                <?php
+                                $historySmallQty = max(1, (int) ($row['small_unit_qty'] ?? 1));
+                                $historyLargeQty = (int) ($row['qty_large'] ?? 0);
+                                $historySmallRemainder = (int) ($row['qty_small'] ?? 0);
+                                $currentPrice = (float)($row['purchase_price'] ?? 0);
+                                
+                                // Price Analysis
+                                $prevPrice = isset($selectedHistory[$index + 1]) ? (float)$selectedHistory[$index + 1]['purchase_price'] : $currentPrice;
+                                $priceDiff = $currentPrice - $prevPrice;
+                                ?>
+                                <tr>
+                                    <td class="ledger-date"><?= htmlspecialchars((string) ($row['transaction_date'] ?? '-')) ?></td>
+                                    <td>
+                                        <div class="ledger-desc"><?= htmlspecialchars((string) (($row['notes'] ?? '') !== '' ? $row['notes'] : 'Pembelian Baru')) ?></div>
+                                        <div class="ledger-detail">
+                                            <span>Masuk: <?= $historyLargeQty ?> <?= htmlspecialchars((string) ($row['unit_large'] ?? 'Bungkus')) ?><?= $historySmallRemainder > 0 ? ' ' . $historySmallRemainder . ' ' . htmlspecialchars((string) ($row['unit_small'] ?? 'Pcs')) : '' ?></span><br>
+                                            <span>Harga Beli: <?= rupiah($currentPrice) ?> | Total: <?= rupiah((float) ($row['purchase_total'] ?? 0)) ?></span>
+                                        </div>
+                                    </td>
+                                    <td class="ledger-val">
+                                        <?php if ($priceDiff > 0): ?>
+                                            <span class="badge" style="background:#fff1f1; color:#b42318; font-weight: 800;">Naik (+<?= rupiah($priceDiff) ?>)</span>
+                                        <?php elseif ($priceDiff < 0): ?>
+                                            <span class="badge" style="background:#ecfdf3; color:#027a48; font-weight: 800;">Turun (<?= rupiah($priceDiff) ?>)</span>
+                                        <?php else: ?>
+                                            <span class="badge" style="color: #667085;">Harga Tetap</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <form method="post" class="receive-delete-form" onsubmit="return confirm('Hapus history receive ini? Stok barang akan dikurangi kembali.');">
+                                            <input type="hidden" name="action" value="delete_receive">
+                                            <input type="hidden" name="item_id" value="<?= (int) ($selectedItem['id'] ?? 0) ?>">
+                                            <input type="hidden" name="receive_id" value="<?= (int) ($row['id'] ?? 0) ?>">
+                                            <button type="submit" class="btn btn-danger" style="padding: 6px 10px; font-size: 11px;">Hapus</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="4" style="text-align:center; padding: 40px; color: #667085;">Belum ada riwayat receive.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <script>
+    function toggleHistoryModal(show) {
+        const modal = document.getElementById('history-modal');
+        if (modal) modal.classList.toggle('active', show);
+    }
     document.querySelectorAll('.money-input').forEach(function(input) {
         input.addEventListener('input', function() {
             const digits = this.value.replace(/[^\d]/g, '');
