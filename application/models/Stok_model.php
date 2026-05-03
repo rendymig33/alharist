@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class Stok_model extends Model
@@ -6,11 +7,11 @@ class Stok_model extends Model
     public function itemOptions(string $keyword = ''): array
     {
         $keyword = trim($keyword);
-        $sql = "SELECT * FROM items";
+        $sql = "SELECT * FROM items WHERE category != 'E-SALDO'";
         $params = [];
 
         if ($keyword !== '') {
-            $sql .= " WHERE code LIKE :keyword OR barcode LIKE :keyword OR name LIKE :keyword OR category LIKE :keyword";
+            $sql .= " AND (code LIKE :keyword OR barcode LIKE :keyword OR name LIKE :keyword OR category LIKE :keyword)";
             $params['keyword'] = '%' . $keyword . '%';
         }
 

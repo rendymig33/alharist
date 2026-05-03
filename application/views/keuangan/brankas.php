@@ -232,9 +232,15 @@
                         <div class="section-title" style="margin-bottom:6px;"><?= htmlspecialchars((string) $vault['bank_name']) ?></div>
                     </div>
                 </div>
-                <div class="vault-card-balance"><?= rupiah((float) $vault['balance']) ?></div>
-                <div class="small" style="margin-bottom:14px;">Saldo aktif pada brankas ini.</div>
+                <div class="vault-card-balance" id="vault-balance-display-<?= (int) $vault['id'] ?>" data-balance="<?= (float) $vault['balance'] ?>">
+                    <?= rupiah((float) $vault['balance']) ?>
+                </div>
+                <div class="small" style="margin-bottom:14px;">
+                    Saldo aktif pada brankas ini.
+                    <div id="vault-selisih-summary-<?= (int) $vault['id'] ?>" style="margin-top: 6px; font-weight: 800;"></div>
+                </div>
                 <div class="action-row">
+                    <button type="button" class="btn btn-secondary" onclick="togglePecahanModal(<?= (int) $vault['id'] ?>, true)">Pecahan</button>
                     <button type="button" class="btn btn-secondary" onclick="toggleVaultTransactionModal(<?= (int) $vault['id'] ?>, true)">Transaksi</button>
                     <a class="btn btn-secondary" href="index.php?route=keuangan/brankas&edit=<?= (int) $vault['id'] ?>">Edit</a>
                 </div>
@@ -368,10 +374,49 @@
             </div>
         </div>
     </div>
+    <div class="modal-backdrop" id="pecahan-modal-<?= (int) $vault['id'] ?>">
+        <div class="modal" style="width: min(400px, 100%);">
+            <div class="modal-head">
+                <h3 style="margin:0;">Hitung Pecahan Uang</h3>
+                <button type="button" class="modal-close" onclick="togglePecahanModal(<?= (int) $vault['id'] ?>, false)">Tutup</button>
+            </div>
+            <div class="small" style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--line);">Saldo Sistem: <strong id="saldo-sistem-<?= (int) $vault['id'] ?>" data-balance="<?= (float) $vault['balance'] ?>"><?= rupiah((float) $vault['balance']) ?></strong></div>
+            
+            <div class="pecahan-container" id="pecahan-container-<?= (int) $vault['id'] ?>">
+                <?php 
+                $pecahanList = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100];
+                foreach($pecahanList as $p):
+                ?>
+                <div class="pecahan-row" style="margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+                    <div class="uang-label" style="width: 70px; font-weight: 600;"><?= number_format($p, 0, ',', '.') ?></div>
+                    <div style="font-weight: 600; color: #98a2b3;">x</div>
+                    <input type="number" min="0" class="input-lembar" data-nilai="<?= $p ?>" placeholder="0" style="width: 70px; text-align: center; padding: 6px;">
+                    <div style="font-weight: 600; color: #98a2b3;">=</div>
+                    <div class="subtotal" style="flex: 1; text-align: right; font-weight: 600; color: #344054;">0</div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div style="font-size: 18px; font-weight: 800; text-align: right; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--line);">
+                Total: <span class="total-uang" id="total-uang-<?= (int) $vault['id'] ?>">0</span>
+            </div>
+            <div style="font-size: 14px; text-align: right; margin-top: 8px; font-weight: bold;">
+                Selisih: <span class="selisih-uang" id="selisih-uang-<?= (int) $vault['id'] ?>">0</span>
+            </div>
+            <div style="margin-top:20px; display: flex; gap: 10px;">
+                <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="resetPecahan(<?= (int) $vault['id'] ?>)">Reset</button>
+                <button type="button" class="btn btn-primary" style="flex: 1;" onclick="simpanPecahan(<?= (int) $vault['id'] ?>)">Simpan</button>
+            </div>
+        </div>
+    </div>
 <?php endforeach; ?>
 <script>
     function toggleBrankasModal(show) {
         document.getElementById('brankas-modal').classList.toggle('active', show);
+    }
+
+    function togglePecahanModal(vaultId, show) {
+        document.getElementById('pecahan-modal-' + vaultId).classList.toggle('active', show);
     }
 
     function toggleVaultTransactionModal(vaultId, show) {
@@ -392,6 +437,109 @@
                 const digits = this.value.replace(/[^\d]/g, '');
                 this.value = digits === '' ? '' : Number(digits).toLocaleString('id-ID');
             });
+        });
+
+        // Global function to update vault summary (both card and modal)
+        window.updateVaultSummary = function(vaultId) {
+            const container = document.getElementById('pecahan-container-' + vaultId);
+            if (!container) return;
+
+            const inputs = container.querySelectorAll('.input-lembar');
+            const totalEl = document.getElementById('total-uang-' + vaultId);
+            const selisihEl = document.getElementById('selisih-uang-' + vaultId);
+            const cardSelisihEl = document.getElementById('vault-selisih-summary-' + vaultId);
+            const saldoEl = document.getElementById('vault-balance-display-' + vaultId);
+            const saldoAwal = parseFloat(saldoEl ? saldoEl.dataset.balance : 0);
+
+            let total = 0;
+            let dataToSave = {};
+            inputs.forEach(function(inp) {
+                const count = parseInt(inp.value) || 0;
+                const nilai = parseInt(inp.dataset.nilai) || 0;
+                const subtotal = count * nilai;
+                const subtotalDisplay = inp.closest('.pecahan-row').querySelector('.subtotal');
+                if (subtotalDisplay) subtotalDisplay.textContent = subtotal.toLocaleString('id-ID');
+                total += subtotal;
+                if (count > 0) dataToSave[nilai] = count;
+            });
+
+            const selisih = total - saldoAwal;
+            const formattedTotal = total.toLocaleString('id-ID');
+            const formattedSelisih = (selisih > 0 ? '+' : '') + selisih.toLocaleString('id-ID');
+            const color = selisih > 0 ? '#027a48' : (selisih < 0 ? '#b42318' : '#344054');
+
+            if (totalEl) totalEl.textContent = formattedTotal;
+            if (selisihEl) {
+                selisihEl.textContent = formattedSelisih;
+                selisihEl.style.color = color;
+            }
+
+            if (cardSelisihEl) {
+                if (total > 0) {
+                    cardSelisihEl.textContent = 'Selisih Pecahan: ' + formattedSelisih;
+                    cardSelisihEl.style.color = color;
+                } else {
+                    cardSelisihEl.textContent = '';
+                }
+            }
+
+            return dataToSave;
+        };
+
+        // Setup Pecahan Calculator logic
+        document.querySelectorAll('.pecahan-container').forEach(function(container) {
+            const vaultId = container.id.replace('pecahan-container-', '');
+            const inputs = container.querySelectorAll('.input-lembar');
+
+            // Load saved data from localStorage
+            const savedData = localStorage.getItem('pecahan_vault_' + vaultId);
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    inputs.forEach(function(inp) {
+                        const nilai = inp.dataset.nilai;
+                        if (parsed[nilai] !== undefined) {
+                            inp.value = parsed[nilai];
+                        }
+                    });
+                } catch (e) {}
+            }
+
+            // Initial hitung & update UI
+            updateVaultSummary(vaultId);
+
+            inputs.forEach(function(input) {
+                input.addEventListener('input', function() {
+                    const dataToSave = updateVaultSummary(vaultId);
+                    localStorage.setItem('pecahan_vault_' + vaultId, JSON.stringify(dataToSave));
+                });
+            });
+            
+            window.resetPecahan = function(id) {
+                if (!confirm('Kosongkan hitungan pecahan ini?')) return;
+                const ctr = document.getElementById('pecahan-container-' + id);
+                if (ctr) {
+                    ctr.querySelectorAll('.input-lembar').forEach(function(inp) {
+                        inp.value = '';
+                    });
+                    localStorage.removeItem('pecahan_vault_' + id);
+                    updateVaultSummary(id);
+                }
+            };
+
+            window.simpanPecahan = function(id) {
+                togglePecahanModal(id, false);
+                updateVaultSummary(id); // Final sync
+                const successMsg = document.createElement('div');
+                successMsg.className = 'alert alert-success';
+                successMsg.textContent = 'Data pecahan berhasil disimpan!';
+                successMsg.style.position = 'fixed';
+                successMsg.style.bottom = '20px';
+                successMsg.style.right = '20px';
+                successMsg.style.zIndex = '9999';
+                document.body.appendChild(successMsg);
+                setTimeout(() => successMsg.remove(), 3000);
+            };
         });
 
         function setupDeleteHandlers() {
