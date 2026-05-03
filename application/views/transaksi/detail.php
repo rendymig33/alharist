@@ -1,7 +1,12 @@
+<?php
+$items = $items ?? [];
+$sale = $sale ?? [];
+?>
+
 <div class="toolbar">
     <div>
         <div class="section-title">Detail Transaksi</div>
-        <h3><?= htmlspecialchars((string) $sale['invoice_no']) ?></h3>
+        <h3><?= htmlspecialchars((string) ($sale['invoice_no'] ?? '-')) ?></h3>
     </div>
     <a href="index.php?route=transaksi/list" class="btn btn-secondary">Kembali ke List</a>
 </div>
@@ -21,7 +26,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($items as $item): ?>
+                        <?php foreach (($items ?? []) as $item): ?>
                             <tr>
                                 <td class="desc" data-label="Item / Kode">
                                     <span class="desc-main"><?= htmlspecialchars((string) $item['item_name']) ?></span>

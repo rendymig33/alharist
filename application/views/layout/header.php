@@ -121,28 +121,39 @@
         .header-clock {
             display: flex;
             flex-direction: column;
-            align-items: flex-end;
-            background: rgba(255, 213, 74, 0.15);
-            padding: 8px 16px;
-            border-radius: 14px;
-            border: 1px solid rgba(255, 213, 74, 0.3);
-            min-width: 180px;
+            align-items: center;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            padding: 10px 20px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 200px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.1);
         }
 
         .clock-time {
-            font-size: 20px;
+            font-size: 24px;
             font-weight: 800;
-            color: var(--red);
-            line-height: 1.2;
-            font-family: 'Courier New', Courier, monospace;
+            color: #fbbf24;
+            line-height: 1;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            text-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+            letter-spacing: 1px;
         }
 
         .clock-date {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
-            color: #667085;
+            color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1.5px;
+            margin-top: 4px;
+        }
+
+        .topbar-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 6px;
         }
 
         .grid {
@@ -989,8 +1000,8 @@
                 </div>
                 <div class="topbar-right">
                     <div class="header-clock">
-                        <div class="clock-date" id="clock-date"><?= date('l, d F Y') ?></div>
                         <div class="clock-time" id="clock-time"><?= date('H:i:s') ?></div>
+                        <div class="clock-date" id="clock-date"><?= date('l, d F Y') ?></div>
                     </div>
                 </div>
             </div>

@@ -1,3 +1,7 @@
+<?php
+$sales = $sales ?? [];
+$keyword = $keyword ?? '';
+?>
 <style>
     .txn-search {
         display: grid;
@@ -88,13 +92,14 @@
         <input type="hidden" name="route" value="transaksi/list">
         <div>
             <div class="small">Cari Transaksi</div>
-            <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari invoice, pembayaran, atau tanggal">
+            <input type="text" name="q" value="<?= htmlspecialchars((string) $keyword) ?>" placeholder="Cari invoice, pembayaran, atau tanggal">
         </div>
         <div class="search-reset-actions">
             <button type="submit" class="btn btn-secondary">Search</button>
             <a href="index.php?route=transaksi/list" class="btn btn-info">Reset</a>
         </div>
     </form>
+
 
     <?php
     $groupedSales = [];

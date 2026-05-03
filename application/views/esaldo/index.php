@@ -1,5 +1,5 @@
-<?php 
-$flashData = flash(); 
+<?php
+$flashData = flash();
 $currentPage = $currentPage ?? 1;
 $totalPages = $totalPages ?? 1;
 ?>
@@ -203,6 +203,7 @@ $totalPages = $totalPages ?? 1;
         border-spacing: 0;
         font-size: 13px;
     }
+
     .ledger-table th {
         background: #f9fafb;
         padding: 12px 10px;
@@ -213,25 +214,30 @@ $totalPages = $totalPages ?? 1;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
+
     .ledger-table td {
         padding: 14px 10px;
         border-bottom: 1px solid #eaecf0;
         vertical-align: top;
     }
+
     .ledger-date {
         color: #667085;
         font-weight: 600;
         white-space: nowrap;
     }
+
     .ledger-desc {
         font-weight: 600;
         color: #1d2939;
         margin-bottom: 4px;
     }
+
     .ledger-detail {
         font-size: 11px;
         color: #667085;
     }
+
     .ledger-val {
         font-weight: 800;
         text-align: right;
@@ -274,7 +280,7 @@ $totalPages = $totalPages ?? 1;
     .btn-pagination:hover:not(:disabled) {
         background: #f9fafb;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 </style>
 
@@ -441,7 +447,7 @@ $totalPages = $totalPages ?? 1;
 
                 if (result.success) {
                     showSuccessModal(result.message);
-                    
+
                     if (result.is_edit) {
                         // Update existing card
                         const card = document.querySelector(`.edit-esaldo-btn[data-id="${result.data.id}"]`).closest('.esaldo-card');
@@ -449,16 +455,13 @@ $totalPages = $totalPages ?? 1;
                             card.querySelector('.section-title').textContent = result.data.name;
                             const balanceStr = Number(result.data.balance).toLocaleString('id-ID');
                             card.querySelector('.esaldo-card-balance').textContent = 'Rp ' + balanceStr;
-                            
+
                             // Update data attributes
                             const editBtn = card.querySelector('.edit-esaldo-btn');
                             editBtn.dataset.name = result.data.name;
                             editBtn.dataset.balance = balanceStr;
                         }
                         setTimeout(() => toggleEsaldoModal(false), 500);
-                        document.getElementById('success-modal-backdrop').addEventListener('click', () => {
-                             window.location.reload();
-                        }, { once: true });
                     } else {
                         // For new item, reload is easier to handle pagination/sorting
                         setTimeout(() => {
@@ -506,7 +509,9 @@ $totalPages = $totalPages ?? 1;
 
                         const response = await fetch('index.php?route=esaldo', {
                             method: 'POST',
-                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
                             body: formData
                         });
 
@@ -548,7 +553,9 @@ $totalPages = $totalPages ?? 1;
 
                 try {
                     const response = await fetch(`index.php?route=esaldo&history=${id}`, {
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
                     });
                     const data = await response.json();
 
