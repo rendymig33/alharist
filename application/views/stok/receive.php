@@ -186,46 +186,7 @@ $totalPages = $totalPages ?? 1;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
 
-    /* Rekening Koran Style */
-    .ledger-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 13px;
-    }
-    .ledger-table th {
-        background: #f9fafb;
-        padding: 12px 10px;
-        text-align: left;
-        border-bottom: 2px solid #eaecf0;
-        color: #475467;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .ledger-table td {
-        padding: 14px 10px;
-        border-bottom: 1px solid #eaecf0;
-        vertical-align: top;
-    }
-    .ledger-date {
-        color: #667085;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-    .ledger-desc {
-        font-weight: 600;
-        color: #1d2939;
-        margin-bottom: 4px;
-    }
-    .ledger-detail {
-        font-size: 11px;
-        color: #667085;
-    }
-    .ledger-val {
-        font-weight: 800;
-        text-align: right;
-    }
+
 </style>
 
 <div class="stok-grid">
@@ -372,13 +333,13 @@ $totalPages = $totalPages ?? 1;
 
                     <?php if ($currentPage > 1): ?>
                         <a href="index.php?<?= http_build_query($prevQuery) ?>" class="btn btn-secondary btn-pagination">
-                            <span>&larr;</span> Prev
+                            Prev
                         </a>
                     <?php endif; ?>
 
                     <?php if ($currentPage < $totalPages): ?>
                         <a href="index.php?<?= http_build_query($nextQuery) ?>" class="btn btn-secondary btn-pagination">
-                            Next <span>&rarr;</span>
+                            Next
                         </a>
                     <?php endif; ?>
                 </div>
@@ -395,65 +356,63 @@ $totalPages = $totalPages ?? 1;
             <button type="button" class="modal-close" onclick="toggleHistoryModal(false)">Tutup</button>
         </div>
         <div class="card" style="padding: 0; overflow: hidden; border: 1px solid #eaecf0; border-radius: 12px;">
-            <div class="stok-list-wrap">
-                <table class="ledger-table">
-                    <thead>
-                        <tr>
-                            <th>Tanggal</th>
-                            <th>Keterangan</th>
-                            <th style="text-align:right;">Analisa Harga</th>
-                            <th style="text-align:right;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($selectedHistory)): ?>
-                            <?php foreach ($selectedHistory as $index => $row): ?>
-                                <?php
-                                $historySmallQty = max(1, (int) ($row['small_unit_qty'] ?? 1));
-                                $historyLargeQty = (int) ($row['qty_large'] ?? 0);
-                                $historySmallRemainder = (int) ($row['qty_small'] ?? 0);
-                                $currentPrice = (float)($row['purchase_price'] ?? 0);
-                                
-                                // Price Analysis
-                                $prevPrice = isset($selectedHistory[$index + 1]) ? (float)$selectedHistory[$index + 1]['purchase_price'] : $currentPrice;
-                                $priceDiff = $currentPrice - $prevPrice;
-                                ?>
-                                <tr>
-                                    <td class="ledger-date"><?= htmlspecialchars((string) ($row['transaction_date'] ?? '-')) ?></td>
-                                    <td>
-                                        <div class="ledger-desc"><?= htmlspecialchars((string) (($row['notes'] ?? '') !== '' ? $row['notes'] : 'Pembelian Baru')) ?></div>
-                                        <div class="ledger-detail">
-                                            <span>Masuk: <?= $historyLargeQty ?> <?= htmlspecialchars((string) ($row['unit_large'] ?? 'Bungkus')) ?><?= $historySmallRemainder > 0 ? ' ' . $historySmallRemainder . ' ' . htmlspecialchars((string) ($row['unit_small'] ?? 'Pcs')) : '' ?></span><br>
-                                            <span>Harga Beli: <?= rupiah($currentPrice) ?> | Total: <?= rupiah((float) ($row['purchase_total'] ?? 0)) ?></span>
-                                        </div>
-                                    </td>
-                                    <td class="ledger-val">
-                                        <?php if ($priceDiff > 0): ?>
-                                            <span class="badge" style="background:#fff1f1; color:#b42318; font-weight: 800;">Naik (+<?= rupiah($priceDiff) ?>)</span>
-                                        <?php elseif ($priceDiff < 0): ?>
-                                            <span class="badge" style="background:#ecfdf3; color:#027a48; font-weight: 800;">Turun (<?= rupiah($priceDiff) ?>)</span>
-                                        <?php else: ?>
-                                            <span class="badge" style="color: #667085;">Harga Tetap</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td style="text-align:right;">
-                                        <form method="post" class="receive-delete-form" onsubmit="return confirm('Hapus history receive ini? Stok barang akan dikurangi kembali.');">
-                                            <input type="hidden" name="action" value="delete_receive">
-                                            <input type="hidden" name="item_id" value="<?= (int) ($selectedItem['id'] ?? 0) ?>">
-                                            <input type="hidden" name="receive_id" value="<?= (int) ($row['id'] ?? 0) ?>">
-                                            <button type="submit" class="btn btn-danger" style="padding: 6px 10px; font-size: 11px;">Hapus</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
+                <div class="bca-ledger-wrap">
+                    <table class="bca-ledger">
+                        <thead>
                             <tr>
-                                <td colspan="4" style="text-align:center; padding: 40px; color: #667085;">Belum ada riwayat receive.</td>
+                                <th>Tanggal</th>
+                                <th>Keterangan</th>
+                                <th style="text-align:right;">Analisa Harga</th>
+                                <th style="text-align:right;">Aksi</th>
                             </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($selectedHistory)): ?>
+                                <?php foreach ($selectedHistory as $index => $row): ?>
+                                    <?php
+                                    $historySmallQty = max(1, (int) ($row['small_unit_qty'] ?? 1));
+                                    $historyLargeQty = (int) ($row['qty_large'] ?? 0);
+                                    $historySmallRemainder = (int) ($row['qty_small'] ?? 0);
+                                    $currentPrice = (float)($row['purchase_price'] ?? 0);
+                                    
+                                    // Price Analysis
+                                    $prevPrice = isset($selectedHistory[$index + 1]) ? (float)$selectedHistory[$index + 1]['purchase_price'] : $currentPrice;
+                                    $priceDiff = $currentPrice - $prevPrice;
+                                    ?>
+                                    <tr>
+                                        <td class="date" data-label="Tanggal"><?= htmlspecialchars((string) ($row['transaction_date'] ?? '-')) ?></td>
+                                        <td class="desc" data-label="Keterangan">
+                                            <span class="desc-main"><?= htmlspecialchars((string) (($row['notes'] ?? '') !== '' ? $row['notes'] : 'Pembelian Baru')) ?></span>
+                                            <span class="desc-sub">Masuk: <?= $historyLargeQty ?> <?= htmlspecialchars((string) ($row['unit_large'] ?? 'Bungkus')) ?><?= $historySmallRemainder > 0 ? ' ' . $historySmallRemainder . ' ' . htmlspecialchars((string) ($row['unit_small'] ?? 'Pcs')) : '' ?></span>
+                                            <span class="desc-sub">Hrg: <?= number_format($currentPrice, 0, ',', '.') ?> | Total: <?= number_format((float) ($row['purchase_total'] ?? 0), 0, ',', '.') ?></span>
+                                        </td>
+                                        <td class="amount" data-label="Analisa">
+                                            <?php if ($priceDiff > 0): ?>
+                                                <span class="type-label type-db">NAIK (+<?= number_format($priceDiff, 0, ',', '.') ?>)</span>
+                                            <?php elseif ($priceDiff < 0): ?>
+                                                <span class="type-label type-cr">TURUN (<?= number_format($priceDiff, 0, ',', '.') ?>)</span>
+                                            <?php else: ?>
+                                                <span class="small" style="font-size:10px; font-weight:800; color:#98a2b3;">TETAP</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="text-align:right;" data-label="Aksi">
+                                            <form method="post" class="receive-delete-form" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus history receive ini? Stok barang akan dikurangi kembali.', () => f.submit());">
+                                                <input type="hidden" name="action" value="delete_receive">
+                                                <input type="hidden" name="item_id" value="<?= (int) ($selectedItem['id'] ?? 0) ?>">
+                                                <input type="hidden" name="receive_id" value="<?= (int) ($row['id'] ?? 0) ?>">
+                                                <button type="submit" class="btn btn-danger" style="padding: 6px 10px; font-size: 11px;">Hapus</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="4" style="text-align:center; padding: 40px; color: #667085;">Belum ada riwayat receive.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
         </div>
     </div>
 </div>

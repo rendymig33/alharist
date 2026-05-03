@@ -376,7 +376,7 @@ $totalPages = $totalPages ?? 1;
                             <div class="action-row">
                                 <a class="btn btn-info" href="index.php?route=barang<?= !empty($keyword) ? '&q=' . urlencode((string) $keyword) : '' ?>&view=<?= (int) $item['id'] ?>">View</a>
                                 <a class="btn btn-secondary" href="index.php?route=barang<?= !empty($keyword) ? '&q=' . urlencode((string) $keyword) : '' ?>&edit=<?= (int) $item['id'] ?>">Edit</a>
-                                <form method="post" onsubmit="return confirm('Hapus barang ini?');" style="margin:0;">
+                                <form method="post" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus barang ini?', () => f.submit());" style="margin:0;">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
                                     <button type="submit" class="btn btn-danger">Delete</button>
@@ -405,13 +405,13 @@ $totalPages = $totalPages ?? 1;
 
                 <?php if ($currentPage > 1): ?>
                     <a href="index.php?<?= http_build_query($prevQuery) ?>" class="btn btn-secondary btn-pagination">
-                        <span>&larr;</span> Prev
+                        Prev
                     </a>
                 <?php endif; ?>
 
                 <?php if ($currentPage < $totalPages): ?>
                     <a href="index.php?<?= http_build_query($nextQuery) ?>" class="btn btn-secondary btn-pagination">
-                        Next <span>&rarr;</span>
+                        Next
                     </a>
                 <?php endif; ?>
             </div>
@@ -628,7 +628,7 @@ $totalPages = $totalPages ?? 1;
 
             <div class="action-row" style="margin-top:16px;">
                 <a class="btn btn-secondary" href="<?= htmlspecialchars($barangBaseUrl . '&edit=' . (int) $viewItem['id']) ?>">Edit</a>
-                <form method="post" onsubmit="return confirm('Hapus barang ini?');" style="margin:0;">
+                <form method="post" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus barang ini?', () => f.submit());" style="margin:0;">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="<?= (int) $viewItem['id'] ?>">
                     <button type="submit" class="btn btn-danger">Delete</button>

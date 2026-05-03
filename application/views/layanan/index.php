@@ -187,7 +187,7 @@
                             <td><?= htmlspecialchars((string) ($service['token_number'] ?? '-')) ?></td>
                             <td><?= rupiah((float) $service['profit']) ?></td>
                             <td>
-                                <form method="post" onsubmit="return confirm('Hapus transaksi layanan ini?');">
+                                <form method="post" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus transaksi layanan ini?', () => f.submit());">
                                     <input type="hidden" name="action" value="delete_service">
                                     <input type="hidden" name="service_id" value="<?= (int) $service['id'] ?>">
                                     <button class="btn-secondary" type="submit">Hapus</button>
@@ -240,9 +240,7 @@
         const btn = document.getElementById('confirm-service');
         if (form && btn) {
             btn.addEventListener('click', function() {
-                if (window.confirm('Simpan transaksi layanan ini? Mohon cek kembali nominal, harga jual, dan nomor tujuan.')) {
-                    form.submit();
-                }
+                askConfirmation('Simpan transaksi layanan ini? Mohon cek kembali nominal, harga jual, dan nomor tujuan.', () => form.submit(), 'Konfirmasi Simpan', 'Simpan Transaksi', 'btn-success');
             });
         }
     }());

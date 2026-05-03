@@ -68,7 +68,11 @@ class Transaksi_model extends Model
     {
         $this->db->beginTransaction();
 
-        $saleStatement = $this->db->prepare("INSERT INTO sales (invoice_no, customer_id, payment_type, vault_id, subtotal, total_profit, total_paid, notes, transaction_date, created_at) VALUES (:invoice_no, :customer_id, :payment_type, :vault_id, :subtotal, :total_profit, :total_paid, :notes, :transaction_date, :created_at)");
+        $hour = (int) date('H');
+        $autoShift = ($hour >= 6 && $hour < 15) ? 1 : 2;
+        $shift = (int) ($payload['shift'] ?? $autoShift);
+
+        $saleStatement = $this->db->prepare("INSERT INTO sales (invoice_no, customer_id, payment_type, vault_id, subtotal, total_profit, total_paid, notes, transaction_date, created_at, shift) VALUES (:invoice_no, :customer_id, :payment_type, :vault_id, :subtotal, :total_profit, :total_paid, :notes, :transaction_date, :created_at, :shift)");
         $saleStatement->execute([
             'invoice_no' => $payload['invoice_no'],
             'customer_id' => $payload['customer_id'] ?: null,
@@ -80,6 +84,7 @@ class Transaksi_model extends Model
             'notes' => $payload['notes'],
             'transaction_date' => date('Y-m-d'),
             'created_at' => date('Y-m-d H:i:s'),
+            'shift' => $shift,
         ]);
 
         $saleId = (int) $this->db->lastInsertId();

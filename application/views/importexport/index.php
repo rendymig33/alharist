@@ -28,7 +28,7 @@
             </select>
             <input style="margin-top:12px;" type="file" name="file" accept=".csv" required>
             <div class="small" style="margin:10px 0;">Gunakan file CSV dari Excel agar import stabil di desktop lokal.</div>
-            <button type="submit">Upload dan Import</button>
+            <button type="submit" class="btn btn-success">Upload dan Import</button>
         </form>
     </div>
 </div>

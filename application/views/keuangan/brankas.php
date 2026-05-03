@@ -307,13 +307,13 @@ $totalPages = $totalPages ?? 1;
 
                 <?php if ($currentPage > 1): ?>
                     <a href="index.php?<?= http_build_query($prevParams) ?>" class="btn-pagination">
-                        &larr; Prev
+                        Prev
                     </a>
                 <?php endif; ?>
 
                 <?php if ($currentPage < $totalPages): ?>
                     <a href="index.php?<?= http_build_query($nextParams) ?>" class="btn-pagination">
-                        Next &rarr;
+                        Next
                     </a>
                 <?php endif; ?>
             </div>
@@ -337,7 +337,7 @@ $totalPages = $totalPages ?? 1;
                     <div class="small">Saldo</div><input class="money-input" name="balance" type="text" placeholder="Saldo awal" value="<?= htmlspecialchars(number_format((float) ($editVault['balance'] ?? 0), 0, ',', '.')) ?>">
                 </div>
             </div>
-            <div style="margin-top:12px;"><button type="submit">Simpan Brankas</button></div>
+            <div style="margin-top:12px;"><button type="submit" class="btn btn-success">Simpan Brankas</button></div>
         </form>
     </div>
 </div>
@@ -390,52 +390,60 @@ $totalPages = $totalPages ?? 1;
                         <input name="notes" placeholder="Catatan transaksi">
                     </div>
                 </div>
-                <div style="margin-top:12px;"><button type="submit">Simpan Transaksi</button></div>
+                <div style="margin-top:12px;"><button type="submit" class="btn btn-success">Simpan Transaksi</button></div>
             </form>
 
             <div class="card" style="margin-top:18px;">
                 <h3>History Transaksi</h3>
-                <div class="vault-history-wrap">
-                    <table class="vault-history-table">
+                <div class="bca-ledger-wrap">
+                    <table class="bca-ledger">
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
-                                <th>Jenis</th>
-                                <th>Dari</th>
-                                <th>Ke</th>
-                                <th>Debet</th>
-                                <th>Kredit</th>
-                                <th>Catatan</th>
-                                <th>Aksi</th>
+                                <th>Keterangan</th>
+                                <th style="text-align:right;">Mutasi</th>
+                                <th style="text-align:right;">Saldo</th>
+                                <th style="text-align:right;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach (($transactionsByVault[(int) $vault['id']] ?? []) as $transaction): ?>
                                 <?php
                                 $typeLabel = match ($transaction['transaction_type']) {
-                                    'switching_dana' => 'Switching Dana',
-                                    'pembelian' => 'Pembelian',
-                                    'dana_masuk' => 'Dana Masuk',
-                                    'penjualan' => 'Transaksi Penjualan',
-                                    'pelunasan_hutang' => 'Pelunasan Hutang',
-                                    default => $transaction['transaction_type'],
+                                    'switching_dana' => 'SWITCHING',
+                                    'pembelian' => 'PEMBELIAN',
+                                    'dana_masuk' => 'DANA MASUK',
+                                    'penjualan' => 'PENJUALAN',
+                                    'pelunasan_hutang' => 'PELUNASAN HTG',
+                                    default => strtoupper((string) $transaction['transaction_type']),
                                 };
                                 $sourceLabel = trim((string) ($transaction['source_bank_name'] ?? ''));
                                 $targetLabel = trim((string) ($transaction['target_bank_name'] ?? ''));
+                                
+                                $isDebit = (float)($transaction['debet'] ?? 0) > 0;
+                                $amount = $isDebit ? (float)$transaction['debet'] : (float)($transaction['kredit'] ?? 0);
                                 ?>
                                 <tr>
-                                    <td data-label="Tanggal"><?= htmlspecialchars((string) $transaction['transaction_date']) ?></td>
-                                    <td data-label="Jenis"><?= htmlspecialchars($typeLabel) ?></td>
-                                    <td data-label="Dari"><?= htmlspecialchars($sourceLabel !== '' ? $sourceLabel : '-') ?></td>
-                                    <td data-label="Ke"><?= htmlspecialchars($targetLabel !== '' ? $targetLabel : '-') ?></td>
-                                    <td data-label="Debet"><?= rupiah((float) ($transaction['debet'] ?? 0)) ?></td>
-                                    <td data-label="Kredit"><?= rupiah((float) ($transaction['kredit'] ?? 0)) ?></td>
-                                    <td data-label="Catatan"><?= htmlspecialchars((string) ($transaction['notes'] ?: '-')) ?></td>
-                                    <td data-label="Aksi">
+                                    <td class="date" data-label="Tanggal"><?= htmlspecialchars((string) $transaction['transaction_date']) ?></td>
+                                    <td class="desc" data-label="Keterangan">
+                                        <span class="desc-main"><?= htmlspecialchars($typeLabel) ?></span>
+                                        <span class="desc-sub"><?= htmlspecialchars((string) ($transaction['notes'] ?: 'Tanpa catatan')) ?></span>
+                                        <?php if ($sourceLabel !== '' || $targetLabel !== ''): ?>
+                                            <span class="desc-sub"><?= htmlspecialchars($sourceLabel) ?> Ke <?= htmlspecialchars($targetLabel) ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="amount <?= $isDebit ? 'db' : 'cr' ?>" data-label="Mutasi">
+                                        <?= number_format($amount, 0, ',', '.') ?>
+                                        <span class="type-label <?= $isDebit ? 'type-db' : 'type-cr' ?>"><?= $isDebit ? 'DB' : 'CR' ?></span>
+                                    </td>
+                                    <td class="balance" data-label="Saldo">
+                                        <?= number_format((float) ($transaction['ending_balance'] ?? 0), 0, ',', '.') ?>
+                                    </td>
+                                    <td style="text-align:right;" data-label="Aksi">
                                         <?php if (($transaction['source_module'] ?? '') === 'manual'): ?>
-                                            <button type="button" class="btn btn-danger delete-transaction-btn" data-transaction-id="<?= (int) $transaction['id'] ?>" data-vault-id="<?= (int) $vault['id'] ?>">Delete</button>
+                                            <button type="button" class="btn btn-danger delete-transaction-btn" style="padding: 4px 8px; font-size: 11px;" data-transaction-id="<?= (int) $transaction['id'] ?>" data-vault-id="<?= (int) $vault['id'] ?>">Delete</button>
                                         <?php else: ?>
-                                            <span class="small">Dari modul transaksi</span>
+                                            <span class="small" style="font-size:10px;"><?= htmlspecialchars((string) $transaction['source_module']) ?></span>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -477,7 +485,7 @@ $totalPages = $totalPages ?? 1;
             </div>
             <div style="margin-top:20px; display: flex; gap: 10px;">
                 <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="resetPecahan(<?= (int) $vault['id'] ?>)">Reset</button>
-                <button type="button" class="btn btn-primary" style="flex: 1;" onclick="simpanPecahan(<?= (int) $vault['id'] ?>)">Simpan</button>
+                <button type="button" class="btn btn-success" style="flex: 1;" onclick="simpanPecahan(<?= (int) $vault['id'] ?>)">Simpan</button>
             </div>
         </div>
     </div>
@@ -588,29 +596,22 @@ $totalPages = $totalPages ?? 1;
             });
             
             window.resetPecahan = function(id) {
-                if (!confirm('Kosongkan hitungan pecahan ini?')) return;
-                const ctr = document.getElementById('pecahan-container-' + id);
-                if (ctr) {
-                    ctr.querySelectorAll('.input-lembar').forEach(function(inp) {
-                        inp.value = '';
-                    });
-                    localStorage.removeItem('pecahan_vault_' + id);
-                    updateVaultSummary(id);
-                }
+                askConfirmation('Kosongkan hitungan pecahan ini?', function() {
+                    const ctr = document.getElementById('pecahan-container-' + id);
+                    if (ctr) {
+                        ctr.querySelectorAll('.input-lembar').forEach(function(inp) {
+                            inp.value = '';
+                        });
+                        localStorage.removeItem('pecahan_vault_' + id);
+                        updateVaultSummary(id);
+                    }
+                }, 'Reset Pecahan', 'Ya, Kosongkan');
             };
 
             window.simpanPecahan = function(id) {
                 togglePecahanModal(id, false);
                 updateVaultSummary(id); // Final sync
-                const successMsg = document.createElement('div');
-                successMsg.className = 'alert alert-success';
-                successMsg.textContent = 'Data pecahan berhasil disimpan!';
-                successMsg.style.position = 'fixed';
-                successMsg.style.bottom = '20px';
-                successMsg.style.right = '20px';
-                successMsg.style.zIndex = '9999';
-                document.body.appendChild(successMsg);
-                setTimeout(() => successMsg.remove(), 3000);
+                showToast('Data pecahan berhasil disimpan!');
             };
         });
 
@@ -622,64 +623,47 @@ $totalPages = $totalPages ?? 1;
         }
 
         async function deleteHandler(e) {
-            if (!confirm('Hapus transaksi brankas ini?')) return;
-
             const button = this;
-            const transactionId = button.dataset.transactionId;
-            const vaultId = button.dataset.vaultId;
-            const originalText = button.textContent;
-            button.disabled = true;
-            button.textContent = 'Menghapus...';
+            askConfirmation('Hapus transaksi brankas ini?', async function() {
+                const transactionId = button.dataset.transactionId;
+                const vaultId = button.dataset.vaultId;
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Menghapus...';
 
-            try {
-                const formData = new FormData();
-                formData.append('action', 'delete_transaction');
-                formData.append('transaction_id', transactionId);
-                formData.append('vault_id', vaultId);
+                try {
+                    const formData = new FormData();
+                    formData.append('action', 'delete_transaction');
+                    formData.append('transaction_id', transactionId);
+                    formData.append('vault_id', vaultId);
 
-                const response = await fetch(
-                    'index.php?route=keuangan/brankas' + (window.location.search ? '&' + window.location.search.substring(1) : ''),
-                    {
+                    const response = await fetch('index.php?route=keuangan/brankas', {
                         method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
                         body: formData
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        showSuccessModal(result.message);
+                        button.closest('tr').remove();
+                        // Update UI balance
+                        const balanceEl = document.querySelector(`.vault-balance[data-id="${vaultId}"]`);
+                        if (balanceEl) {
+                            const newBalance = result.new_balance;
+                            balanceEl.textContent = 'Rp ' + Math.round(newBalance).toLocaleString('id-ID');
+                        }
+                    } else {
+                        showToast(result.message, 'warning');
+                        button.disabled = false;
+                        button.textContent = originalText;
                     }
-                );
-
-                const result = await response.json();
-
-                if (result.success) {
-                    const row = button.closest('tr');
-                    row.style.opacity = '0.5';
-                    row.style.pointerEvents = 'none';
-
-                    setTimeout(() => {
-                        row.remove();
-                        const successMsg = document.createElement('div');
-                        successMsg.className = 'alert alert-success';
-                        successMsg.textContent = result.message;
-                        document.body.appendChild(successMsg);
-                        setTimeout(() => successMsg.remove(), 3000);
-                    }, 300);
-                } else {
-                    const errorMsg = document.createElement('div');
-                    errorMsg.className = 'alert alert-danger';
-                    errorMsg.textContent = result.message;
-                    document.body.appendChild(errorMsg);
-                    setTimeout(() => errorMsg.remove(), 3000);
+                } catch (error) {
+                    showToast('Terjadi kesalahan saat menghapus data.', 'warning');
+                    button.disabled = false;
+                    button.textContent = originalText;
                 }
-            } catch (error) {
-                const errorMsg = document.createElement('div');
-                errorMsg.className = 'alert alert-danger';
-                errorMsg.textContent = 'Terjadi kesalahan: ' + error.message;
-                document.body.appendChild(errorMsg);
-                setTimeout(() => errorMsg.remove(), 3000);
-            } finally {
-                button.disabled = false;
-                button.textContent = originalText;
-            }
+            });
         }
 
         setupDeleteHandlers();

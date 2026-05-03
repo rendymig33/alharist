@@ -102,6 +102,60 @@ class Dashboard_model extends Model
         ];
     }
 
+    public function summaryByShift(?string $dateFrom = null, ?string $dateTo = null): array
+    {
+        $profitExpr = "
+            SUM(
+                sale_items.line_total - (
+                    sale_items.qty * (
+                        CASE
+                            WHEN COALESCE(items.category, '') = 'E-SALDO' THEN COALESCE(sale_items.purchase_price, 0)
+                            WHEN COALESCE(items.small_unit_qty, 0) > 0 THEN COALESCE(items.purchase_price, 0) / items.small_unit_qty
+                            WHEN COALESCE(items.purchase_price, 0) > 0 THEN COALESCE(items.purchase_price, 0)
+                            ELSE COALESCE(sale_items.purchase_price, 0)
+                        END
+                    )
+                )
+            )
+        ";
+
+        $sql = "
+            SELECT
+                sales.shift,
+                COALESCE(SUM(sales.subtotal), 0) as total_sales,
+                COALESCE($profitExpr, 0) as total_profit
+            FROM sales
+            LEFT JOIN sale_items ON sale_items.sale_id = sales.id
+            LEFT JOIN items ON items.id = sale_items.item_id
+        ";
+
+        $conditions = [];
+        $params = [];
+
+        if (!empty($dateFrom)) {
+            $conditions[] = "sales.transaction_date >= :date_from";
+            $params['date_from'] = $dateFrom;
+        }
+        if (!empty($dateTo)) {
+            $conditions[] = "sales.transaction_date <= :date_to";
+            $params['date_to'] = $dateTo;
+        }
+
+        if (empty($dateFrom) && empty($dateTo)) {
+            $conditions[] = "sales.transaction_date = :today";
+            $params['today'] = date('Y-m-d');
+        }
+
+        if (!empty($conditions)) {
+            $sql .= " WHERE " . implode(' AND ', $conditions);
+        }
+
+        $sql .= " GROUP BY sales.shift";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function lowStockItems(): array
     {
         $statement = $this->db->query("SELECT * FROM items WHERE stock <= 5 ORDER BY stock ASC, name ASC LIMIT 8");

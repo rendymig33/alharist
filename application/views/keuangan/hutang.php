@@ -122,7 +122,7 @@
             <input name="notes" placeholder="Catatan hutang manual">
         </div>
         <div style="grid-column:1 / -1;">
-            <button type="submit" class="btn-green">Simpan Hutang</button>
+            <button type="submit" class="btn btn-success">Simpan Hutang</button>
         </div>
     </form>
 </div>
@@ -183,11 +183,11 @@
                                 </select>
                                 <input type="text" name="amount" class="debt-payment-amount" placeholder="Nominal bayar" required>
                                 <input name="notes" placeholder="Catatan">
-                                <button class="btn-green" type="submit">Simpan</button>
+                                <button class="btn btn-success" type="submit">Simpan</button>
                             </form>
                         </td>
                         <td data-label="Aksi">
-                            <form method="post" onsubmit="return confirm('Hapus transaksi hutang ini? Pembayaran yang sudah masuk akan dibalik dari brankas.');" style="margin:0;">
+                            <form method="post" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus transaksi hutang ini? Pembayaran yang sudah masuk akan dibalik dari brankas.', () => f.submit());" style="margin:0;">
                                 <input type="hidden" name="action" value="delete_debt">
                                 <input type="hidden" name="debt_id" value="<?= (int) $debt['id'] ?>">
                                 <button class="btn btn-danger" type="submit">Delete</button>
@@ -218,13 +218,13 @@
 
                 <?php if ($currentPage > 1): ?>
                     <a href="index.php?<?= http_build_query($prevParams) ?>" class="btn-pagination">
-                        &larr; Prev
+                        Prev
                     </a>
                 <?php endif; ?>
 
                 <?php if ($currentPage < $totalPages): ?>
                     <a href="index.php?<?= http_build_query($nextParams) ?>" class="btn-pagination">
-                        Next &rarr;
+                        Next
                     </a>
                 <?php endif; ?>
             </div>

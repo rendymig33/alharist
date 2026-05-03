@@ -60,22 +60,25 @@ class Esaldo_model extends Model
         return $statement->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function save(array $data): void
+    public function save(array $data): int
     {
         $balance = (float) ($data['balance'] ?? 0);
         $name = trim((string) ($data['name'] ?? 'E-Saldo'));
 
         if (!empty($data['id'])) {
+            $id = (int) $data['id'];
             $sql = "UPDATE items SET name = :name, selling_price = :balance, unit_price = :balance WHERE id = :id AND category = 'E-SALDO'";
             $statement = $this->db->prepare($sql);
             $statement->execute([
                 'name' => $name,
                 'balance' => $balance,
-                'id' => (int) $data['id'],
+                'id' => $id,
             ]);
+            return $id;
         } else {
             $code = $this->nextCode();
             $payload = [
+                // ... same payload ...
                 'code' => $code,
                 'barcode' => '',
                 'name' => $name,
@@ -125,6 +128,7 @@ class Esaldo_model extends Model
             )";
             $statement = $this->db->prepare($sql);
             $statement->execute($payload);
+            return (int) $this->db->lastInsertId();
         }
     }
 

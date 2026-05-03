@@ -96,13 +96,53 @@
 
         .topbar {
             background: linear-gradient(135deg, #ffffff, #fff9eb);
-            padding: 18px 22px;
+            padding: 16px 24px;
             border-radius: 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border: 1px solid var(--line);
             box-shadow: 0 14px 30px rgba(28, 39, 60, .06);
+            margin-bottom: 24px;
+        }
+
+        .topbar-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-clock {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            background: rgba(255, 213, 74, 0.15);
+            padding: 8px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 213, 74, 0.3);
+            min-width: 180px;
+        }
+
+        .clock-time {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--red);
+            line-height: 1.2;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .clock-date {
+            font-size: 11px;
+            font-weight: 700;
+            color: #667085;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .grid {
@@ -190,38 +230,80 @@
 
         button,
         .btn {
-            background: var(--red);
-            color: var(--white);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
             border: none;
             cursor: pointer;
-            display: inline-block;
-            text-align: center;
-            transition: .2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            line-height: 1.4;
+            white-space: nowrap;
+            background: var(--red);
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(215, 25, 32, 0.15);
         }
 
         button:hover,
         .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 20px rgba(215, 25, 32, .16);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(215, 25, 32, 0.25);
+            opacity: 0.95;
+        }
+
+        button:active,
+        .btn:active {
+            transform: translateY(0);
         }
 
         .btn-secondary {
-            background: #eef1f6;
-            color: var(--ink);
+            background: #f2f4f7;
+            color: #344054;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        .btn-secondary:hover {
+            background: #eaecf0;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
         }
 
         .btn-info {
-            background: var(--soft-blue);
-            color: #184e9e;
+            background: #1570ef;
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(21, 112, 239, 0.2);
+        }
+        .btn-info:hover {
+            box-shadow: 0 8px 25px rgba(21, 112, 239, 0.3);
         }
 
         .btn-danger {
-            background: var(--soft-red);
-            color: #b42318;
+            background: #d92d20;
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(217, 45, 32, 0.2);
+        }
+        .btn-danger:hover {
+            box-shadow: 0 8px 25px rgba(217, 45, 32, 0.3);
         }
 
-        .btn-green {
-            background: var(--green);
+        .btn-success, .btn-green {
+            background: #079455;
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(7, 148, 85, 0.2);
+        }
+        .btn-success:hover, .btn-green:hover {
+            box-shadow: 0 8px 25px rgba(7, 148, 85, 0.3);
+        }
+
+        .btn-warning {
+            background: #f79009;
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(247, 144, 9, 0.2);
+        }
+        .btn-warning:hover {
+            box-shadow: 0 8px 25px rgba(247, 144, 9, 0.3);
         }
 
         .form-grid {
@@ -230,20 +312,54 @@
             gap: 12px;
         }
 
-        .flash {
-            padding: 12px 14px;
-            border-radius: 10px;
-            margin: 16px 0;
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 10005;
+            display: grid;
+            gap: 12px;
+            pointer-events: none;
         }
 
-        .flash.success {
-            background: #e7f8ef;
-            color: #0f6a40;
+        .toast {
+            min-width: 320px;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            pointer-events: auto;
+            animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 6px solid #1e293b;
         }
 
-        .flash.warning {
-            background: #fff3d9;
-            color: #8a5a00;
+        @keyframes toastIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left-color: #079455; }
+        .toast.warning { border-left-color: #f79009; }
+        .toast.error { border-left-color: #d92d20; }
+
+        .toast-content { flex: 1; }
+        .toast-title { font-weight: 800; font-size: 14px; margin-bottom: 2px; }
+        .toast-message { font-size: 13px; color: #667085; }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: #98a2b3;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 18px;
+            line-height: 1;
+            min-height: auto;
+            width: auto;
         }
 
         .metric {
@@ -290,6 +406,73 @@
 
         .modal-backdrop.active {
             display: flex;
+        }
+
+        #success-modal-backdrop,
+        #confirm-modal-backdrop {
+            z-index: 10001;
+        }
+
+        .modal-success {
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 400px;
+        }
+        .modal-success .icon {
+            width: 80px;
+            height: 80px;
+            background: #ecfdf5;
+            color: #079455;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 20px;
+        }
+        .modal-success h2 {
+            margin-bottom: 10px;
+            color: #101828;
+        }
+        .modal-success p {
+            color: #667085;
+            margin-bottom: 24px;
+        }
+
+        .modal-confirm {
+            text-align: center;
+            padding: 30px 20px;
+            max-width: 400px;
+        }
+        .modal-confirm .icon {
+            width: 70px;
+            height: 70px;
+            background: #fef2f2;
+            color: #d92d20;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            margin: 0 auto 16px;
+        }
+        .modal-confirm h2 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #101828;
+        }
+        .modal-confirm p {
+            color: #667085;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .confirm-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .confirm-actions .btn {
+            flex: 1;
         }
 
         .modal {
@@ -461,17 +644,24 @@
 
             .topbar {
                 flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
+                align-items: stretch;
+                gap: 16px;
                 padding: 16px;
             }
 
-            .topbar-header {
+            .topbar-left {
                 width: 100%;
-                display: flex;
+            }
+
+            .topbar-right {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .header-clock {
+                width: 100%;
                 align-items: center;
-                justify-content: space-between;
-                gap: 12px;
+                min-width: 0;
             }
 
             .toolbar {
@@ -566,7 +756,203 @@
                 padding: 14px;
             }
         }
+        /* BCA Ledger Style (Rekening Koran) */
+        .bca-ledger-wrap {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .bca-ledger {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .bca-ledger th {
+            background: #f2f4f7;
+            color: #475467;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            padding: 12px 15px;
+            border-bottom: 2px solid #eaecf0;
+            text-align: left;
+        }
+
+        .bca-ledger td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f2f4f7;
+            vertical-align: top;
+            line-height: 1.5;
+        }
+
+        .bca-ledger tr:last-child td {
+            border-bottom: none;
+        }
+
+        .bca-ledger .date {
+            white-space: nowrap;
+            color: #667085;
+            font-weight: 600;
+            width: 100px;
+        }
+
+        .bca-ledger .desc {
+            color: #1d2939;
+            font-weight: 500;
+        }
+
+        .bca-ledger .desc-main {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .bca-ledger .desc-sub {
+            font-size: 11px;
+            color: #667085;
+            display: block;
+        }
+
+        .bca-ledger .amount {
+            text-align: right;
+            font-weight: 800;
+            white-space: nowrap;
+            width: 150px;
+        }
+
+        .bca-ledger .balance {
+            text-align: right;
+            color: #101828;
+            font-weight: 700;
+            width: 150px;
+        }
+
+        .bca-ledger .db {
+            color: #d71920;
+        }
+
+        .bca-ledger .cr {
+            color: #16794d;
+        }
+
+        .bca-ledger .type-label {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 800;
+            margin-left: 6px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .bca-ledger .type-db {
+            background: #fff0f0;
+            color: #d71920;
+        }
+
+        .bca-ledger .type-cr {
+            background: #e7f8ef;
+            color: #16794d;
+        }
+
+        @media (max-width: 640px) {
+            .bca-ledger thead { display: none; }
+            .bca-ledger tr { display: block; padding: 15px; border-bottom: 1px solid #f2f4f7; }
+            .bca-ledger td { display: block; padding: 0; border: none; width: 100% !important; text-align: left !important; margin-bottom: 8px; }
+            .bca-ledger td:last-child { margin-bottom: 0; }
+            .bca-ledger td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 10px;
+                font-weight: 800;
+                color: #98a2b3;
+                text-transform: uppercase;
+                margin-bottom: 2px;
+            }
+        }
     </style>
+    <script>
+        let confirmCallback = null;
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const title = type === 'success' ? 'Berhasil' : (type === 'warning' ? 'Perhatian' : 'Info');
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                if(toast.parentElement) {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(100%)';
+                    toast.style.transition = 'all 0.3s ease';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 4000);
+        }
+
+        function showSuccessModal(message, title = 'Berhasil') {
+            const modal = document.getElementById('success-modal-backdrop');
+            if (!modal) return;
+            document.getElementById('success-modal-title').textContent = title;
+            document.getElementById('success-modal-message').textContent = message;
+            modal.classList.add('active');
+        }
+
+        function askConfirmation(message, callback, title = 'Konfirmasi', btnText = 'Ya, Hapus', btnClass = 'btn-danger') {
+            const modal = document.getElementById('confirm-modal-backdrop');
+            if (!modal) return;
+            const icon = document.getElementById('confirm-modal-icon');
+            const yesBtn = document.getElementById('confirm-modal-yes');
+            document.getElementById('confirm-modal-title').textContent = title;
+            document.getElementById('confirm-modal-message').innerText = message;
+            yesBtn.textContent = btnText;
+            yesBtn.className = 'btn ' + btnClass;
+            if (btnClass === 'btn-danger') {
+                icon.style.background = '#fef2f2'; icon.style.color = '#d92d20'; icon.textContent = '!';
+            } else {
+                icon.style.background = '#eff6ff'; icon.style.color = '#1d4ed8'; icon.textContent = '?';
+            }
+            modal.classList.add('active');
+            confirmCallback = callback;
+        }
+        function updateClock() {
+            const now = new Date();
+            const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateStr = now.toLocaleDateString('id-ID', optionsDate);
+            const timeStr = now.toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
+            
+            const dateEl = document.getElementById('clock-date');
+            const timeEl = document.getElementById('clock-time');
+            
+            if (dateEl) dateEl.textContent = dateStr;
+            if (timeEl) timeEl.textContent = timeStr;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // Sidebar Toggle
+            const toggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('app-sidebar');
+            if (toggle && sidebar) {
+                toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+            }
+        });
+    </script>
 </head>
 
 <body>
@@ -590,13 +976,48 @@
         </aside>
         <main class="content">
             <div class="topbar">
-                <div class="topbar-header">
-                    <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="Buka menu">Menu</button>
-                    <div style="font-size:22px;font-weight:700; flex:1;"><?= htmlspecialchars($title ?? 'TOKO AL-HARIST') ?></div>
+                <div class="topbar-left">
+                    <div class="topbar-header">
+                        <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="Buka menu">Menu</button>
+                        <div style="font-size:22px;font-weight:700;"><?= htmlspecialchars($title ?? 'TOKO AL-HARIST') ?></div>
+                    </div>
+                    <div class="small" style="color: #667085; font-weight: 500;">
+                        <span style="color: var(--red); font-weight: 700;">Toko Al-Harist</span> 
+                        <span style="margin: 0 4px; color: var(--line);">|</span> 
+                        Jl. Raya Serang Km.32 RT.09/RW.06 Ds. Sumur Bandung Kec. Jayanti
+                    </div>
                 </div>
-                <div class="small">Toko Al-Harist | Jl. Raya Serang Km.32 RT.09/RW.06 Ds. Sumur Bandung Kec. Jayanti</div>
-                <div class="small"><?= date('d-m-Y H:i') ?></div>
+                <div class="topbar-right">
+                    <div class="header-clock">
+                        <div class="clock-date" id="clock-date"><?= date('l, d F Y') ?></div>
+                        <div class="clock-time" id="clock-time"><?= date('H:i:s') ?></div>
+                    </div>
+                </div>
             </div>
-            <?php if (!empty($flash)): ?>
-                <div class="flash <?= htmlspecialchars($flash['type']) ?>"><?= htmlspecialchars($flash['message']) ?></div>
-            <?php endif; ?>
+            <div class="toast-container" id="toast-container"></div>
+            
+            <div class="modal-backdrop" id="success-modal-backdrop">
+                <div class="modal modal-success">
+                    <div class="icon">✓</div>
+                    <h2 id="success-modal-title">Berhasil</h2>
+                    <p id="success-modal-message">Transaksi telah berhasil disimpan.</p>
+                    <button type="button" class="btn btn-success" onclick="document.getElementById('success-modal-backdrop').classList.remove('active')">Tutup</button>
+                </div>
+            </div>
+
+            <div class="modal-backdrop" id="confirm-modal-backdrop">
+                <div class="modal modal-confirm">
+                    <div class="icon" id="confirm-modal-icon">!</div>
+                    <h2 id="confirm-modal-title">Konfirmasi</h2>
+                    <p id="confirm-modal-message">Apakah Anda yakin?</p>
+                    <div class="confirm-actions">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('confirm-modal-backdrop').classList.remove('active')">Batal</button>
+                        <button type="button" class="btn btn-danger" id="confirm-modal-yes">Ya, Lanjutkan</button>
+                    </div>
+                </div>
+            </div>            <script>
+                document.getElementById('confirm-modal-yes').addEventListener('click', function() {
+                    if (confirmCallback) confirmCallback();
+                    document.getElementById('confirm-modal-backdrop').classList.remove('active');
+                });
+            </script>

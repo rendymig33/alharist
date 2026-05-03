@@ -30,17 +30,22 @@ class Esaldo_controller extends Controller
             $balance = unformat_number((string) post('balance'));
             $name = trim((string) post('name'));
 
-            $saved = $model->save([
+            $savedId = $model->save([
                 'id' => post('id'),
                 'name' => $name !== '' ? $name : 'E-Saldo',
                 'balance' => $balance,
             ]);
 
             if ($isAjax) {
+                $isEdit = !empty(post('id'));
+                $savedItem = $model->findBalance($savedId);
+                
                 header('Content-Type: application/json');
                 echo json_encode([
                     'success' => true,
                     'message' => 'Saldo berhasil disimpan.',
+                    'data' => $savedItem,
+                    'is_edit' => $isEdit
                 ]);
                 exit;
             }

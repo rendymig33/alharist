@@ -320,12 +320,12 @@ $totalPages = $totalPages ?? 1;
                 <div class="pagination-btns" style="display:flex; gap:8px;">
                     <?php if ($currentPage > 1): ?>
                         <a href="index.php?route=esaldo&p=<?= $currentPage - 1 ?>" class="btn-pagination">
-                            &larr; Prev
+                            Prev
                         </a>
                     <?php endif; ?>
                     <?php if ($currentPage < $totalPages): ?>
                         <a href="index.php?route=esaldo&p=<?= $currentPage + 1 ?>" class="btn-pagination">
-                            Next &rarr;
+                            Next
                         </a>
                     <?php endif; ?>
                 </div>
@@ -440,28 +440,36 @@ $totalPages = $totalPages ?? 1;
                 const result = await response.json();
 
                 if (result.success) {
-                    const successMsg = document.createElement('div');
-                    successMsg.className = 'alert alert-success';
-                    successMsg.textContent = result.message;
-                    document.body.appendChild(successMsg);
-
-                    setTimeout(() => {
-                        successMsg.remove();
-                        window.location.reload();
-                    }, 300);
+                    showSuccessModal(result.message);
+                    
+                    if (result.is_edit) {
+                        // Update existing card
+                        const card = document.querySelector(`.edit-esaldo-btn[data-id="${result.data.id}"]`).closest('.esaldo-card');
+                        if (card) {
+                            card.querySelector('.section-title').textContent = result.data.name;
+                            const balanceStr = Number(result.data.balance).toLocaleString('id-ID');
+                            card.querySelector('.esaldo-card-balance').textContent = 'Rp ' + balanceStr;
+                            
+                            // Update data attributes
+                            const editBtn = card.querySelector('.edit-esaldo-btn');
+                            editBtn.dataset.name = result.data.name;
+                            editBtn.dataset.balance = balanceStr;
+                        }
+                        setTimeout(() => toggleEsaldoModal(false), 500);
+                        document.getElementById('success-modal-backdrop').addEventListener('click', () => {
+                             window.location.reload();
+                        }, { once: true });
+                    } else {
+                        // For new item, reload is easier to handle pagination/sorting
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    }
                 } else {
-                    const errorMsg = document.createElement('div');
-                    errorMsg.className = 'alert alert-danger';
-                    errorMsg.textContent = result.message;
-                    document.body.appendChild(errorMsg);
-                    setTimeout(() => errorMsg.remove(), 3000);
+                    showToast(result.message, 'warning');
                 }
             } catch (error) {
-                const errorMsg = document.createElement('div');
-                errorMsg.className = 'alert alert-danger';
-                errorMsg.textContent = 'Terjadi kesalahan: ' + error.message;
-                document.body.appendChild(errorMsg);
-                setTimeout(() => errorMsg.remove(), 3000);
+                showToast('Terjadi kesalahan: ' + error.message, 'warning');
             } finally {
                 button.disabled = false;
                 button.textContent = originalText;
@@ -483,61 +491,41 @@ $totalPages = $totalPages ?? 1;
         });
 
         document.querySelectorAll('.delete-esaldo-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                if (!confirm('Hapus saldo ini?')) return;
-
-                const id = this.dataset.id;
+            btn.addEventListener('click', function() {
                 const button = this;
-                const originalText = button.textContent;
-                button.disabled = true;
-                button.textContent = 'Menghapus...';
+                askConfirmation('Hapus saldo ini?', async function() {
+                    const id = button.dataset.id;
+                    const originalText = button.textContent;
+                    button.disabled = true;
+                    button.textContent = 'Menghapus...';
 
-                try {
-                    const formData = new FormData();
-                    formData.append('action', 'delete');
-                    formData.append('id', id);
+                    try {
+                        const formData = new FormData();
+                        formData.append('action', 'delete');
+                        formData.append('id', id);
 
-                    const response = await fetch('index.php?route=esaldo', {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: formData
-                    });
+                        const response = await fetch('index.php?route=esaldo', {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            body: formData
+                        });
 
-                    const result = await response.json();
-
-                    if (result.success) {
-                        const card = button.closest('.esaldo-card');
-                        card.style.opacity = '0.5';
-                        card.style.pointerEvents = 'none';
-
-                        setTimeout(() => {
-                            card.remove();
-                            const successMsg = document.createElement('div');
-                            successMsg.className = 'alert alert-success';
-                            successMsg.textContent = result.message;
-                            document.body.appendChild(successMsg);
-                            setTimeout(() => successMsg.remove(), 3000);
-                        }, 300);
-                    } else {
-                        const errorMsg = document.createElement('div');
-                        errorMsg.className = 'alert alert-danger';
-                        errorMsg.textContent = result.message;
-                        document.body.appendChild(errorMsg);
-                        setTimeout(() => errorMsg.remove(), 3000);
+                        const result = await response.json();
+                        if (result.success) {
+                            showSuccessModal(result.message);
+                            const card = button.closest('.esaldo-card');
+                            if (card) card.remove();
+                        } else {
+                            showToast(result.message, 'warning');
+                            button.disabled = false;
+                            button.textContent = originalText;
+                        }
+                    } catch (error) {
+                        showToast('Terjadi kesalahan saat menghapus data.', 'warning');
                         button.disabled = false;
                         button.textContent = originalText;
                     }
-                } catch (error) {
-                    const errorMsg = document.createElement('div');
-                    errorMsg.className = 'alert alert-danger';
-                    errorMsg.textContent = 'Terjadi kesalahan: ' + error.message;
-                    document.body.appendChild(errorMsg);
-                    setTimeout(() => errorMsg.remove(), 3000);
-                    button.disabled = false;
-                    button.textContent = originalText;
-                }
+                });
             });
         });
 
@@ -570,37 +558,39 @@ $totalPages = $totalPages ?? 1;
                     }
 
                     let html = `
-                        <table class="ledger-table">
-                            <thead>
-                                <tr>
-                                    <th>Tanggal / No. Invoice</th>
-                                    <th>Keterangan</th>
-                                    <th style="text-align:right;">Nominal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                        <div class="bca-ledger-wrap">
+                            <table class="bca-ledger">
+                                <thead>
+                                    <tr>
+                                        <th>Tanggal / Invoice</th>
+                                        <th>Keterangan</th>
+                                        <th style="text-align:right;">Mutasi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                     `;
 
                     data.forEach(item => {
                         html += `
                             <tr>
-                                <td class="ledger-date">
-                                    <div class="ledger-desc" style="margin-bottom:2px;">${item.date}</div>
-                                    <div class="small">${item.invoice_no}</div>
+                                <td class="date" data-label="Tanggal">
+                                    <span class="desc-main">${item.date}</span>
+                                    <span class="desc-sub">${item.invoice_no}</span>
                                 </td>
-                                <td>
-                                    <div class="ledger-desc">Penggunaan Saldo</div>
-                                    <div class="ledger-detail">${item.notes || 'Transaksi Penjualan'}</div>
-                                    <div class="small" style="margin-top:4px;">Qty: ${item.qty} x ${Number(item.price).toLocaleString('id-ID')}</div>
+                                <td class="desc" data-label="Keterangan">
+                                    <span class="desc-main">PENGGUNAAN SALDO</span>
+                                    <span class="desc-sub">${item.notes || 'Transaksi Penjualan'}</span>
+                                    <span class="desc-sub">Qty: ${item.qty} x ${Number(item.price).toLocaleString('id-ID')}</span>
                                 </td>
-                                <td class="ledger-val">
-                                    <div style="color: #d71920;">- ${Number(item.total).toLocaleString('id-ID')}</div>
+                                <td class="amount db" data-label="Mutasi">
+                                    ${Number(item.total).toLocaleString('id-ID')}
+                                    <span class="type-label type-db">DB</span>
                                 </td>
                             </tr>
                         `;
                     });
 
-                    html += '</tbody></table>';
+                    html += '</tbody></table></div>';
                     historyContent.innerHTML = html;
 
                 } catch (error) {

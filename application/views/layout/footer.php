@@ -48,5 +48,24 @@
         });
     }());
 </script>
+<script>
+    <?php if (!empty($flash)): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            const msg = <?= json_encode($flash['message']) ?>;
+            const type = <?= json_encode($flash['type'] ?? 'success') ?>;
+            const isSuccess = msg.toLowerCase().includes('berhasil') || type === 'success';
+            
+            console.log('Flash Message detected:', msg, 'isSuccess:', isSuccess);
+
+            if (isSuccess && typeof showSuccessModal === 'function') {
+                showSuccessModal(msg);
+            } else if (typeof showToast === 'function') {
+                showToast(msg, type);
+            } else {
+                alert(msg);
+            }
+        });
+    <?php endif; ?>
+</script>
 </body>
 </html>

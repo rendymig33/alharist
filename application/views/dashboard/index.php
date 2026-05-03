@@ -54,7 +54,7 @@ $totalPages = $totalPages ?? 1;
     .btn-pagination:hover:not(:disabled) {
         background: #f9fafb;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 
     .dashboard-transactions {
@@ -395,22 +395,34 @@ $totalPages = $totalPages ?? 1;
         }
     }
 </style>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px;">
+    <?php foreach ([1, 2] as $sIdx): ?>
+        <?php
+        $sData = array_values(array_filter($shiftSummary ?? [], fn($s) => (int)$s['shift'] === $sIdx))[0] ?? ['total_sales' => 0, 'total_profit' => 0];
+        ?>
+        <div class="card" style="background: #ecfdf5; color: #065f46; border: 1px solid #bbf7d0;">
+            <div class="small" style="color: #047857; font-weight: 700;">PROFIT SHIFT <?= $sIdx ?></div>
+            <div class="metric" style="color: #065f46; margin: 8px 0; font-size: 28px;"><?= rupiah($sData['total_profit']) ?></div>
+        </div>
+    <?php endforeach; ?>
+</div>
+
 <div class="grid cards">
     <div class="card">
-        <div class="small"><?= $isFiltered ? 'Penjualan Terfilter' : 'Penjualan Hari Ini' ?></div>
-        <div class="metric"><?= rupiah($summary['sales']) ?></div>
+        <div class="small" style="font-weight: 700; color: #64748b;"><?= $isFiltered ? 'TOTAL PENJUALAN' : 'OMZET HARI INI' ?></div>
+        <div class="metric" style="color: #0f172a;"><?= rupiah($summary['sales']) ?></div>
     </div>
     <div class="card">
-        <div class="small"><?= $isFiltered ? 'Keuntungan Terfilter' : 'Keuntungan Hari Ini' ?></div>
-        <div class="metric"><?= rupiah($summary['profit']) ?></div>
+        <div class="small" style="font-weight: 700; color: #64748b;"><?= $isFiltered ? 'TOTAL KEUNTUNGAN' : 'PROFIT HARI INI' ?></div>
+        <div class="metric" style="color: #064e3b;"><?= rupiah($summary['profit']) ?></div>
     </div>
     <div class="card">
-        <div class="small">Saldo</div>
-        <div class="metric"><?= rupiah($summary['vault']) ?></div>
+        <div class="small" style="font-weight: 700; color: #64748b;">SALDO BERANGKAS</div>
+        <div class="metric" style="color: #1e293b;"><?= rupiah($summary['vault']) ?></div>
     </div>
     <div class="card">
-        <div class="small">Piutang / Hutang Pelanggan</div>
-        <div class="metric"><?= rupiah($summary['debts']) ?></div>
+        <div class="small" style="font-weight: 700; color: #64748b;">PIUTANG PELANGGAN</div>
+        <div class="metric" style="color: #7f1d1d;"><?= rupiah($summary['debts']) ?></div>
     </div>
 </div>
 
@@ -442,42 +454,40 @@ $totalPages = $totalPages ?? 1;
             </div>
         </form>
 
-        <div class="dashboard-table-wrap">
-            <table class="mobile-stack-table">
+        <div class="bca-ledger-wrap">
+            <table class="bca-ledger">
                 <thead>
                     <tr>
                         <th>Tanggal</th>
-                        <th>Jumlah Transaksi</th>
-                        <th>Total Penjualan</th>
-                        <th>Total Keuntungan</th>
-                        <th>Total Dibayar</th>
-                        <th>Aksi</th>
+                        <th>Ringkasan</th>
+                        <th style="text-align:right;">Penjualan</th>
+                        <th style="text-align:right;">Profit</th>
+                        <th style="text-align:right;">Dibayar</th>
+                        <th style="text-align:right;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (!empty($latestSales)): ?>
                         <?php foreach ($latestSales as $sale): ?>
                             <tr>
-                                <td class="date-cell" data-label="Tanggal"><strong><?= htmlspecialchars((string) $sale['transaction_date']) ?></strong></td>
-                                <td class="amount-cell" data-label="Jumlah Transaksi">
-                                    <strong><?= (int) $sale['transaction_count'] ?> transaksi</strong>
-                                    <div class="small">Digabung per tanggal</div>
+                                <td class="date" data-label="Tanggal"><?= htmlspecialchars((string) $sale['transaction_date']) ?></td>
+                                <td class="desc" data-label="Ringkasan">
+                                    <span class="desc-main"><?= (int) $sale['transaction_count'] ?> TRANSAKSI</span>
+                                    <span class="desc-sub">Akumulasi transaksi harian</span>
                                 </td>
-                                <td class="amount-cell" data-label="Total Penjualan">
-                                    <strong><?= rupiah((float) $sale['subtotal_sum']) ?></strong>
-                                    <div class="small">Total penjualan harian</div>
+                                <td class="amount cr" data-label="Penjualan">
+                                    <?= number_format((float) $sale['subtotal_sum'], 0, ',', '.') ?>
+                                    <span class="type-label type-cr">CR</span>
                                 </td>
-                                <td class="amount-cell" data-label="Total Keuntungan">
-                                    <strong><?= rupiah((float) $sale['total_profit_sum']) ?></strong>
-                                    <div class="small">Akumulasi profit</div>
+                                <td class="balance" style="color: #16794d;" data-label="Profit">
+                                    <?= number_format((float) $sale['total_profit_sum'], 0, ',', '.') ?>
                                 </td>
-                                <td class="amount-cell" data-label="Total Dibayar">
-                                    <strong><?= rupiah((float) $sale['total_paid_sum']) ?></strong>
-                                    <div class="small">Total pembayaran masuk</div>
+                                <td class="balance" data-label="Dibayar">
+                                    <?= number_format((float) $sale['total_paid_sum'], 0, ',', '.') ?>
                                 </td>
-                                <td data-label="Aksi">
-                                    <div class="table-actions">
-                                        <a class="btn btn-info" href="index.php?<?= http_build_query($detailQuery + ['view_date' => (string) $sale['transaction_date']]) ?>">Detail</a>
+                                <td style="text-align:right;" data-label="Aksi">
+                                    <div class="table-actions" style="justify-content: flex-end;">
+                                        <a class="btn btn-info" style="padding: 4px 10px; font-size: 11px;" href="index.php?<?= http_build_query($detailQuery + ['view_date' => (string) $sale['transaction_date']]) ?>">Detail</a>
                                     </div>
                                 </td>
                             </tr>
@@ -508,13 +518,13 @@ $totalPages = $totalPages ?? 1;
 
                     <?php if ($currentPage > 1): ?>
                         <a href="index.php?<?= http_build_query($prevParams) ?>" class="btn-pagination">
-                            &larr; Prev
+                            Prev
                         </a>
                     <?php endif; ?>
 
                     <?php if ($currentPage < $totalPages): ?>
                         <a href="index.php?<?= http_build_query($nextParams) ?>" class="btn-pagination">
-                            Next &rarr;
+                            Next
                         </a>
                     <?php endif; ?>
                 </div>
@@ -552,43 +562,52 @@ $totalPages = $totalPages ?? 1;
                                 <span class="badge">Dibayar <?= rupiah((float) $history['total_paid']) ?></span>
                             </div>
                         </div>
-                        <div class="history-table-wrap">
-                            <table class="mobile-stack-table">
+                        <div class="bca-ledger-wrap">
+                            <table class="bca-ledger">
                                 <thead>
                                     <tr>
-                                        <th>Kode</th>
-                                        <th>Nama Item</th>
-                                        <th>Qty</th>
-                                        <th>Modal</th>
-                                        <th>Harga Jual</th>
-                                        <th>Subtotal</th>
-                                        <th>Profit</th>
-                                        <th>Aksi</th>
+                                        <th>Item / Kode</th>
+                                        <th style="text-align:right;">Qty</th>
+                                        <th style="text-align:right;">Modal</th>
+                                        <th style="text-align:right;">Jual</th>
+                                        <th style="text-align:right;">Profit</th>
+                                        <th style="text-align:right;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (!empty($history['items'])): ?>
                                         <?php foreach ($history['items'] as $item): ?>
                                             <tr>
-                                                <td data-label="Kode"><?= htmlspecialchars((string) ($item['item_code'] ?? '-')) ?></td>
-                                                <td data-label="Nama Item"><?= htmlspecialchars((string) ($item['item_name'] ?? 'Item dihapus')) ?></td>
-                                                <td data-label="Qty"><?= format_qty((float) $item['qty']) ?></td>
-                                                <td data-label="Modal"><?= rupiah((float) ($item['line_cost_live'] ?? $item['purchase_price_live'] ?? $item['purchase_price'] ?? 0)) ?></td>
-                                                <td data-label="Harga Jual"><?= rupiah((float) $item['selling_price']) ?></td>
-                                                <td data-label="Subtotal"><?= rupiah((float) $item['line_total']) ?></td>
-                                                <td data-label="Profit"><?= rupiah((float) ($item['line_profit_live'] ?? $item['line_profit'] ?? 0)) ?></td>
-                                                <td data-label="Aksi">
-                                                    <form method="post" onsubmit="return confirm('Hapus transaksi ini? Stok akan dikembalikan.');" style="display:inline;">
+                                                <td class="desc" data-label="Item / Kode">
+                                                    <span class="desc-main"><?= htmlspecialchars((string) ($item['item_name'] ?? 'Item dihapus')) ?></span>
+                                                    <span class="desc-sub"><?= htmlspecialchars((string) ($item['item_code'] ?? '-')) ?></span>
+                                                </td>
+                                                <td class="amount" data-label="Qty">
+                                                    <?= format_qty((float) $item['qty']) ?>
+                                                </td>
+                                                <td class="amount db" data-label="Modal">
+                                                    <?= number_format((float) ($item['line_cost_live'] ?? $item['purchase_price_live'] ?? $item['purchase_price'] ?? 0), 0, ',', '.') ?>
+                                                    <span class="type-label type-db">DB</span>
+                                                </td>
+                                                <td class="amount cr" data-label="Jual">
+                                                    <?= number_format((float) $item['selling_price'], 0, ',', '.') ?>
+                                                    <span class="type-label type-cr">CR</span>
+                                                </td>
+                                                <td class="balance" style="color: #16794d;" data-label="Profit">
+                                                    <?= number_format((float) ($item['line_profit_live'] ?? $item['line_profit'] ?? 0), 0, ',', '.') ?>
+                                                </td>
+                                                <td style="text-align:right;" data-label="Aksi">
+                                                    <form method="post" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus transaksi ini? Stok akan dikembalikan.', () => f.submit());" style="display:inline;">
                                                         <input type="hidden" name="action" value="delete_sale">
                                                         <input type="hidden" name="sale_id" value="<?= (int) $history['id'] ?>">
-                                                        <button class="btn-danger" type="submit">Hapus</button>
+                                                        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" type="submit">Hapus</button>
                                                     </form>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="8" class="small">Detail item transaksi tidak ditemukan.</td>
+                                            <td colspan="6" class="small">Detail item transaksi tidak ditemukan.</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>

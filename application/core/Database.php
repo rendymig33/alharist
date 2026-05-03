@@ -143,6 +143,12 @@ class Database
             }
         }
 
+        $salesColumns = $pdo->query("PRAGMA table_info(sales)")->fetchAll(PDO::FETCH_ASSOC);
+        $salesColumnNames = array_column($salesColumns, 'name');
+        if (!empty($salesColumnNames) && !in_array('shift', $salesColumnNames, true)) {
+            $pdo->exec("ALTER TABLE sales ADD COLUMN shift INTEGER DEFAULT 1");
+        }
+
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS item_receives (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -200,6 +206,7 @@ class Database
         self::ensureMysqlColumn($pdo, 'debt_payments', 'vault_id', "ALTER TABLE debt_payments ADD COLUMN vault_id BIGINT UNSIGNED NULL");
         self::ensureMysqlColumn($pdo, 'service_transactions', 'customer_id', "ALTER TABLE service_transactions ADD COLUMN customer_id BIGINT UNSIGNED NULL");
         self::ensureMysqlColumn($pdo, 'service_transactions', 'token_number', "ALTER TABLE service_transactions ADD COLUMN token_number VARCHAR(100) NULL");
+        self::ensureMysqlColumn($pdo, 'sales', 'shift', "ALTER TABLE sales ADD COLUMN shift INT DEFAULT 1");
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS item_receives (
                 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

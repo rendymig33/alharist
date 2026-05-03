@@ -405,9 +405,17 @@ $transactionMode = $transactionMode ?? 'biasa';
 <div class="card transaction-shell">
     <div class="transaction-head-grid">
         <div id="header-customer-label" style="padding:10px 14px; border-right:1px solid #333;">Customer: UMUM</div>
-        <div style="padding:10px 14px; border-right:1px solid #333;">Salesman: Rendi Satria</div>
         <div id="header-payment-label" style="padding:10px 14px; border-right:1px solid #333;">Termin: Tunai</div>
         <div style="padding:10px 14px; border-right:1px solid #333;">Tanggal: <?= date('d M Y') ?></div>
+        <div style="padding:0; border-right:1px solid #333;">
+            <form method="post" style="margin:0;">
+                <input type="hidden" name="action" value="set_shift">
+                <select name="shift" onchange="this.form.submit()" style="background:#111; color:#fff; border:none; height:100%; border-radius:0; font-weight:700;">
+                    <option value="1" <?= (int) ($activeShift ?? 1) === 1 ? 'selected' : '' ?>>SHIFT 1</option>
+                    <option value="2" <?= (int) ($activeShift ?? 1) === 2 ? 'selected' : '' ?>>SHIFT 2</option>
+                </select>
+            </form>
+        </div>
         <div style="padding:10px 14px;">No Penjualan: <?= htmlspecialchars((string) ($nextInvoiceNo ?? 'AUTO')) ?></div>
     </div>
     <div style="padding:10px 14px; background:#fff8db; color:#8a5a00; font-size:13px; font-weight:700;">Kategori Pembiayaan: Konsumsi Pribadi</div>
@@ -493,7 +501,7 @@ $transactionMode = $transactionMode ?? 'biasa';
                                         <input type="hidden" name="transaction_mode" value="<?= htmlspecialchars((string) $transactionMode) ?>">
                                         <input type="hidden" name="action" value="remove_item">
                                         <input type="hidden" name="index" value="<?= (int) $index ?>">
-                                        <button class="btn-secondary" type="submit">X</button>
+                                        <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" type="submit">Hapus</button>
                                     </form>
                                 </td>
                             </tr>
@@ -607,7 +615,7 @@ $transactionMode = $transactionMode ?? 'biasa';
                                         <?php endif; ?>
                                     </select>
                                     <input type="number" name="qty" value="1" min="1" inputmode="numeric">
-                                    <button type="submit">Tambah</button>
+                                    <button class="btn btn-success" type="submit">Tambah</button>
                                 </form>
                             </div>
                         </div>
@@ -627,7 +635,7 @@ $transactionMode = $transactionMode ?? 'biasa';
                                     <input type="hidden" name="item_id" value="<?= (int) $item['id'] ?>">
                                     <input type="text" name="manual_buy_price" class="money-inline" placeholder="Masukkan Modal" value="">
                                     <input type="text" name="manual_sell_price" class="money-inline" placeholder="Masukkan Harga Jual" value="">
-                                    <button type="submit">Tambah</button>
+                                    <button class="btn btn-success" type="submit">Tambah</button>
                                 </form>
                             </div>
                         </div>
@@ -973,16 +981,15 @@ $transactionMode = $transactionMode ?? 'biasa';
                 const paid = parseFloat(cashPaid.value || '0');
                 const change = Math.max(0, paid - subtotal);
                 if (paymentType === 'Hutang' && customerSelect && customerSelect.value === '0') {
-                    window.alert('Pilih pelanggan terlebih dahulu untuk transaksi hutang.');
+                    showToast('Pilih pelanggan terlebih dahulu untuk transaksi hutang.', 'warning');
                     customerSelect.focus();
                     return;
                 }
                 const summary = paymentType === 'Hutang' ?
                     'Total belanja: ' + rupiah(subtotal) + '\nPembayaran: Hutang\nPelanggan: ' + (customerSelect && customerSelect.selectedIndex > 0 ? customerSelect.options[customerSelect.selectedIndex].text : '-') + '\n\nLanjut simpan transaksi?' :
                     'Total belanja: ' + rupiah(subtotal) + '\nUang bayar: ' + rupiah(paid) + '\nKembalian: ' + rupiah(change) + '\n\nLanjut simpan transaksi?';
-                if (window.confirm(summary)) {
-                    checkoutForm.submit();
-                }
+                
+                askConfirmation(summary, () => checkoutForm.submit(), 'Konfirmasi Pembayaran', 'Ya, Bayar Sekarang', 'btn-success');
             });
         }
     }());

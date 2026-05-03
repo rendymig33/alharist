@@ -178,46 +178,7 @@ $totalPages = $totalPages ?? 1;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 
-    /* Rekening Koran Style */
-    .ledger-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 13px;
-    }
-    .ledger-table th {
-        background: #f9fafb;
-        padding: 12px 10px;
-        text-align: left;
-        border-bottom: 2px solid #eaecf0;
-        color: #475467;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .ledger-table td {
-        padding: 14px 10px;
-        border-bottom: 1px solid #eaecf0;
-        vertical-align: top;
-    }
-    .ledger-date {
-        color: #667085;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-    .ledger-desc {
-        font-weight: 600;
-        color: #1d2939;
-        margin-bottom: 4px;
-    }
-    .ledger-detail {
-        font-size: 11px;
-        color: #667085;
-    }
-    .ledger-val {
-        font-weight: 800;
-        text-align: right;
-    }
+
 </style>
 
 <div class="stok-grid">
@@ -355,13 +316,13 @@ $totalPages = $totalPages ?? 1;
 
                     <?php if ($currentPage > 1): ?>
                         <a href="index.php?<?= http_build_query($prevQuery) ?>" class="btn btn-secondary btn-pagination">
-                            <span>&larr;</span> Prev
+                            Prev
                         </a>
                     <?php endif; ?>
 
                     <?php if ($currentPage < $totalPages): ?>
                         <a href="index.php?<?= http_build_query($nextQuery) ?>" class="btn btn-secondary btn-pagination">
-                            Next <span>&rarr;</span>
+                            Next
                         </a>
                     <?php endif; ?>
                 </div>
@@ -378,64 +339,61 @@ $totalPages = $totalPages ?? 1;
             <button type="button" class="modal-close" onclick="toggleHistoryModal(false)">Tutup</button>
         </div>
         <div class="card" style="padding: 0; overflow: hidden; border: 1px solid #eaecf0; border-radius: 12px;">
-            <div class="stok-list-wrap">
-                <table class="ledger-table">
-                    <thead>
-                        <tr>
-                            <th>Tanggal</th>
-                            <th>Keterangan</th>
-                            <th style="text-align:right;">Analisa</th>
-                            <th style="text-align:right;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($selectedHistory)): ?>
-                            <?php foreach ($selectedHistory as $index => $row): ?>
-                                <?php
-                                $historySmallQty = max(1, (int) ($row['small_unit_qty'] ?? 1));
-                                $beforeDisplay = format_stock_breakdown((int) ($row['before_stock'] ?? 0), (string) ($row['unit_large'] ?? 'Bungkus'), (string) ($row['unit_small'] ?? 'Pcs'), $historySmallQty);
-                                $actualDisplay = format_stock_breakdown((int) ($row['actual_stock'] ?? 0), (string) ($row['unit_large'] ?? 'Bungkus'), (string) ($row['unit_small'] ?? 'Pcs'), $historySmallQty);
-                                $adj = (float)($row['adjustment'] ?? 0);
-                                $isLatestHistory = $index === 0;
-                                ?>
-                                <tr>
-                                    <td class="ledger-date"><?= htmlspecialchars((string) ($row['transaction_date'] ?? '-')) ?></td>
-                                    <td>
-                                        <div class="ledger-desc"><?= htmlspecialchars((string) (($row['notes'] ?? '') !== '' ? $row['notes'] : 'Koreksi Stok')) ?></div>
-                                        <div class="ledger-detail">
-                                            <span>Sebelum: <?= htmlspecialchars($beforeDisplay) ?></span> &rarr; 
-                                            <span>Aktual: <?= htmlspecialchars($actualDisplay) ?></span>
-                                        </div>
-                                    </td>
-                                    <td class="ledger-val">
-                                        <?php if ($adj > 0): ?>
-                                            <span class="badge" style="background:#ecfdf3; color:#027a48; font-weight: 800;">Lebih (+<?= format_qty($adj) ?>)</span>
-                                        <?php else: ?>
-                                            <span class="badge" style="background:#fff1f1; color:#b42318; font-weight: 800;">Kurang (<?= format_qty($adj) ?>)</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td style="text-align:right;">
-                                        <?php if ($isLatestHistory): ?>
-                                            <form method="post" class="opname-delete-form" onsubmit="return confirm('Hapus history stok opname ini? Stok akan dikembalikan ke nilai sebelum koreksi.');">
-                                                <input type="hidden" name="action" value="delete_opname">
-                                                <input type="hidden" name="item_id" value="<?= (int) ($selectedItem['id'] ?? 0) ?>">
-                                                <input type="hidden" name="opname_id" value="<?= (int) ($row['id'] ?? 0) ?>">
-                                                <button type="submit" class="btn btn-danger" style="padding: 6px 10px; font-size: 11px;">Hapus</button>
-                                            </form>
-                                        <?php else: ?>
-                                            <span class="small" style="color:#98a2b3; font-weight:700;">Terkunci</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
+                <div class="bca-ledger-wrap">
+                    <table class="bca-ledger">
+                        <thead>
                             <tr>
-                                <td colspan="4" style="text-align:center; padding: 40px; color: #667085;">Belum ada riwayat koreksi.</td>
+                                <th>Tanggal</th>
+                                <th>Keterangan</th>
+                                <th style="text-align:right;">Analisa</th>
+                                <th style="text-align:right;">Aksi</th>
                             </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($selectedHistory)): ?>
+                                <?php foreach ($selectedHistory as $index => $row): ?>
+                                    <?php
+                                    $historySmallQty = max(1, (int) ($row['small_unit_qty'] ?? 1));
+                                    $beforeDisplay = format_stock_breakdown((int) ($row['before_stock'] ?? 0), (string) ($row['unit_large'] ?? 'Bungkus'), (string) ($row['unit_small'] ?? 'Pcs'), $historySmallQty);
+                                    $actualDisplay = format_stock_breakdown((int) ($row['actual_stock'] ?? 0), (string) ($row['unit_large'] ?? 'Bungkus'), (string) ($row['unit_small'] ?? 'Pcs'), $historySmallQty);
+                                    $adj = (float)($row['adjustment'] ?? 0);
+                                    $isLatestHistory = $index === 0;
+                                    ?>
+                                    <tr>
+                                        <td class="date" data-label="Tanggal"><?= htmlspecialchars((string) ($row['transaction_date'] ?? '-')) ?></td>
+                                        <td class="desc" data-label="Keterangan">
+                                            <span class="desc-main"><?= htmlspecialchars((string) (($row['notes'] ?? '') !== '' ? $row['notes'] : 'Koreksi Stok')) ?></span>
+                                            <span class="desc-sub">Sblm: <?= htmlspecialchars($beforeDisplay) ?> &rarr; Akt: <?= htmlspecialchars($actualDisplay) ?></span>
+                                        </td>
+                                        <td class="amount" data-label="Analisa">
+                                            <?php if ($adj > 0): ?>
+                                                <span class="type-label type-cr">LEBIH (+<?= format_qty($adj) ?>)</span>
+                                            <?php else: ?>
+                                                <span class="type-label type-db">KURANG (<?= format_qty($adj) ?>)</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="text-align:right;" data-label="Aksi">
+                                            <?php if ($isLatestHistory): ?>
+                                                <form method="post" class="opname-delete-form" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus history stok opname ini? Stok akan dikembalikan ke nilai sebelum koreksi.', () => f.submit());">
+                                                    <input type="hidden" name="action" value="delete_opname">
+                                                    <input type="hidden" name="item_id" value="<?= (int) ($selectedItem['id'] ?? 0) ?>">
+                                                    <input type="hidden" name="opname_id" value="<?= (int) ($row['id'] ?? 0) ?>">
+                                                    <button type="submit" class="btn btn-danger" style="padding: 6px 10px; font-size: 11px;">Hapus</button>
+                                                </form>
+                                            <?php else: ?>
+                                                <span class="small" style="font-size:10px;">TERKUNCI</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="4" style="text-align:center; padding: 40px; color: #667085;">Belum ada riwayat koreksi.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
         </div>
     </div>
 </div>

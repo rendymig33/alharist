@@ -13,12 +13,21 @@ class Transaksi_controller extends Controller
 
         $_SESSION['cart'] ??= [];
         $_SESSION['transaction_mode'] ??= 'biasa';
+        
+        $hour = (int) date('H');
+        $_SESSION['active_shift'] ??= ($hour >= 6 && $hour < 15) ? 1 : 2;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = post('action');
             $postedMode = trim((string) post('transaction_mode', $_SESSION['transaction_mode']));
             if (in_array($postedMode, ['biasa', 'esaldo'], true)) {
                 $_SESSION['transaction_mode'] = $postedMode;
+            }
+
+            if ($action === 'set_shift') {
+                $_SESSION['active_shift'] = (int) post('shift', $_SESSION['active_shift']);
+                flash('Shift aktif berhasil diperbarui.');
+                $this->redirect('transaksi');
             }
 
             if ($action === 'delete_sale') {
@@ -208,6 +217,7 @@ class Transaksi_controller extends Controller
                     'notes' => '',
                     'due_date' => $paymentType === 'Hutang' && $dueDate !== '' ? $dueDate : null,
                     'items' => $_SESSION['cart'],
+                    'shift' => $_SESSION['active_shift'],
                 ]);
 
                 if (in_array($paymentType, ['Tunai', 'QRIS'], true)) {
@@ -241,6 +251,7 @@ class Transaksi_controller extends Controller
             'transactionMode' => $_SESSION['transaction_mode'],
             'nextInvoiceNo' => $transaksiModel->nextInvoiceNo(),
             'latestSales' => $transaksiModel->latestSales(),
+            'activeShift' => $_SESSION['active_shift'],
             'flash' => flash(),
         ]);
     }
@@ -260,6 +271,27 @@ class Transaksi_controller extends Controller
             'title' => 'List Transaksi',
             'sales' => $transaksiModel->salesList($keyword),
             'keyword' => $keyword,
+            'flash' => flash(),
+        ]);
+    }
+
+    public function detail(): void
+    {
+        $transaksiModel = $this->model('Transaksi_model');
+        $id = (int) ($_GET['id'] ?? 0);
+        $sale = $transaksiModel->findSale($id);
+
+        if (!$sale) {
+            flash('Transaksi tidak ditemukan.', 'warning');
+            $this->redirect('transaksi/list');
+        }
+
+        $items = $transaksiModel->saleItems($id);
+
+        $this->view('transaksi/detail', [
+            'title' => 'Detail Transaksi ' . $sale['invoice_no'],
+            'sale' => $sale,
+            'items' => $items,
             'flash' => flash(),
         ]);
     }

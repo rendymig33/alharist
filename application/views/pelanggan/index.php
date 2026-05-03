@@ -90,7 +90,7 @@
                         <td data-label="Aksi">
                             <div class="action-row">
                                 <a class="btn btn-secondary" href="index.php?route=pelanggan&edit=<?= (int) $customer['id'] ?>">Edit</a>
-                                <form method="post" onsubmit="return confirm('Hapus pelanggan ini?');" style="margin:0;">
+                                <form method="post" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus pelanggan ini?', () => f.submit());" style="margin:0;">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= (int) $customer['id'] ?>">
                                     <button type="submit" class="btn btn-danger">Hapus</button>

@@ -34,6 +34,7 @@ class Dashboard_controller extends Controller
         $this->view('dashboard/index', [
             'title' => 'Dashboard',
             'summary' => $dashboardModel->summary($dateFrom ?: null, $dateTo ?: null, null),
+            'shiftSummary' => $dashboardModel->summaryByShift($dateFrom ?: null, $dateTo ?: null),
             'latestSales' => $latestSales,
             'totalItems' => $totalItems,
             'totalPages' => $totalPages,
