@@ -1,3 +1,7 @@
+<?php
+$currentPage = $currentPage ?? 1;
+$totalPages = $totalPages ?? 1;
+?>
 <style>
     .stok-grid {
         display: grid;
@@ -142,6 +146,45 @@
             width: 100%;
         }
     }
+
+    .pagination-wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+    }
+
+    .pagination-info {
+        font-size: 13px;
+        font-weight: 700;
+        color: #667085;
+        background: #f9fafb;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+    }
+
+    .pagination-btns {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-pagination {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .btn-pagination:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
 </style>
 
 <div class="stok-grid">
@@ -269,7 +312,7 @@
                         <?php
                         $isLowStock = !empty($item['low_stock']);
                         $isSelected = (int) ($selectedItem['id'] ?? 0) === (int) ($item['id'] ?? 0);
-                        $pickQuery = ['route' => 'stok/receive', 'item' => (int) $item['id']];
+                        $pickQuery = ['route' => 'stok/receive', 'item' => (int) $item['id'], 'p' => $currentPage];
                         if (!empty($keyword)) {
                             $pickQuery['q'] = $keyword;
                         }
@@ -297,6 +340,37 @@
                 </tbody>
             </table>
         </div>
+
+        <?php if ($totalPages > 1): ?>
+            <div class="pagination-wrap">
+                <div class="pagination-info">
+                    Halaman <?= $currentPage ?> dari <?= $totalPages ?>
+                </div>
+                <div class="pagination-btns">
+                    <?php
+                    $prevQuery = ['route' => 'stok/receive', 'p' => $currentPage - 1];
+                    if (!empty($keyword)) $prevQuery['q'] = $keyword;
+                    if (!empty($selectedItem['id'])) $prevQuery['item'] = $selectedItem['id'];
+
+                    $nextQuery = ['route' => 'stok/receive', 'p' => $currentPage + 1];
+                    if (!empty($keyword)) $nextQuery['q'] = $keyword;
+                    if (!empty($selectedItem['id'])) $nextQuery['item'] = $selectedItem['id'];
+                    ?>
+
+                    <?php if ($currentPage > 1): ?>
+                        <a href="index.php?<?= http_build_query($prevQuery) ?>" class="btn btn-secondary btn-pagination">
+                            <span>&larr;</span> Prev
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if ($currentPage < $totalPages): ?>
+                        <a href="index.php?<?= http_build_query($nextQuery) ?>" class="btn btn-secondary btn-pagination">
+                            Next <span>&rarr;</span>
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

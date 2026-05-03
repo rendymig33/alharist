@@ -39,14 +39,24 @@ class Stok_controller extends Controller
             exit;
         }
 
-        $items = $stokModel->itemOptions($keyword);
+        $all_items = $stokModel->itemOptions($keyword);
+        $limit = 8;
+        $totalItems = count($all_items);
+        $totalPages = (int) ceil($totalItems / $limit);
+        $currentPage = max(1, min((int) ($_GET['p'] ?? 1), max(1, $totalPages)));
+        $offset = ($currentPage - 1) * $limit;
+        $items = array_slice($all_items, $offset, $limit);
+
         $selectedItem = null;
-        foreach ($items as $item) {
-            if ((int) ($item['id'] ?? 0) === $selectedItemId) {
-                $selectedItem = $item;
-                break;
+        if ($selectedItemId > 0) {
+            foreach ($all_items as $item) {
+                if ((int) ($item['id'] ?? 0) === $selectedItemId) {
+                    $selectedItem = $item;
+                    break;
+                }
             }
         }
+        
         if ($selectedItem === null && !empty($items)) {
             $selectedItem = $items[0];
         }
@@ -58,6 +68,9 @@ class Stok_controller extends Controller
         $this->view('stok/receive', [
             'title' => 'Receive Item',
             'items' => $items,
+            'totalItems' => $totalItems,
+            'totalPages' => $totalPages,
+            'currentPage' => $currentPage,
             'selectedItem' => $selectedItem,
             'selectedHistory' => $selectedHistory,
             'keyword' => $keyword,
@@ -100,14 +113,24 @@ class Stok_controller extends Controller
             exit;
         }
 
-        $items = $stokModel->itemOptions($keyword);
+        $all_items = $stokModel->itemOptions($keyword);
+        $limit = 8;
+        $totalItems = count($all_items);
+        $totalPages = (int) ceil($totalItems / $limit);
+        $currentPage = max(1, min((int) ($_GET['p'] ?? 1), max(1, $totalPages)));
+        $offset = ($currentPage - 1) * $limit;
+        $items = array_slice($all_items, $offset, $limit);
+
         $selectedItem = null;
-        foreach ($items as $item) {
-            if ((int) ($item['id'] ?? 0) === $selectedItemId) {
-                $selectedItem = $item;
-                break;
+        if ($selectedItemId > 0) {
+            foreach ($all_items as $item) {
+                if ((int) ($item['id'] ?? 0) === $selectedItemId) {
+                    $selectedItem = $item;
+                    break;
+                }
             }
         }
+
         if ($selectedItem === null && !empty($items)) {
             $selectedItem = $items[0];
         }
@@ -119,6 +142,9 @@ class Stok_controller extends Controller
         $this->view('stok/opname', [
             'title' => 'Stok Opname',
             'items' => $items,
+            'totalItems' => $totalItems,
+            'totalPages' => $totalPages,
+            'currentPage' => $currentPage,
             'selectedItem' => $selectedItem,
             'selectedHistory' => $selectedHistory,
             'keyword' => $keyword,
