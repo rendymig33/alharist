@@ -96,14 +96,14 @@
 
         .topbar {
             background: linear-gradient(135deg, #ffffff, #fff9eb);
-            padding: 16px 24px;
+            padding: 6px 18px;
             border-radius: 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border: 1px solid var(--line);
             box-shadow: 0 14px 30px rgba(28, 39, 60, .06);
-            margin-bottom: 24px;
+            margin-bottom: 15px;
         }
 
         .topbar-left {
@@ -118,22 +118,10 @@
             gap: 20px;
         }
 
-        .header-clock {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            padding: 10px 20px;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            min-width: 200px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-        }
-
         .clock-time {
             font-size: 24px;
             font-weight: 800;
-            color: #fbbf24;
+            color: #020105;
             line-height: 1;
             font-family: 'JetBrains Mono', 'Courier New', monospace;
             text-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
@@ -276,6 +264,7 @@
             color: #344054;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
         }
+
         .btn-secondary:hover {
             background: #eaecf0;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
@@ -286,6 +275,7 @@
             color: var(--white);
             box-shadow: 0 4px 12px rgba(21, 112, 239, 0.2);
         }
+
         .btn-info:hover {
             box-shadow: 0 8px 25px rgba(21, 112, 239, 0.3);
         }
@@ -295,16 +285,20 @@
             color: var(--white);
             box-shadow: 0 4px 12px rgba(217, 45, 32, 0.2);
         }
+
         .btn-danger:hover {
             box-shadow: 0 8px 25px rgba(217, 45, 32, 0.3);
         }
 
-        .btn-success, .btn-green {
+        .btn-success,
+        .btn-green {
             background: #079455;
             color: var(--white);
             box-shadow: 0 4px 12px rgba(7, 148, 85, 0.2);
         }
-        .btn-success:hover, .btn-green:hover {
+
+        .btn-success:hover,
+        .btn-green:hover {
             box-shadow: 0 8px 25px rgba(7, 148, 85, 0.3);
         }
 
@@ -313,6 +307,7 @@
             color: var(--white);
             box-shadow: 0 4px 12px rgba(247, 144, 9, 0.2);
         }
+
         .btn-warning:hover {
             box-shadow: 0 8px 25px rgba(247, 144, 9, 0.3);
         }
@@ -349,17 +344,43 @@
         }
 
         @keyframes toastIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
-        .toast.success { border-left-color: #079455; }
-        .toast.warning { border-left-color: #f79009; }
-        .toast.error { border-left-color: #d92d20; }
+        .toast.success {
+            border-left-color: #079455;
+        }
 
-        .toast-content { flex: 1; }
-        .toast-title { font-weight: 800; font-size: 14px; margin-bottom: 2px; }
-        .toast-message { font-size: 13px; color: #667085; }
+        .toast.warning {
+            border-left-color: #f79009;
+        }
+
+        .toast.error {
+            border-left-color: #d92d20;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 800;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .toast-message {
+            font-size: 13px;
+            color: #667085;
+        }
 
         .toast-close {
             background: none;
@@ -429,6 +450,7 @@
             padding: 40px 20px;
             max-width: 400px;
         }
+
         .modal-success .icon {
             width: 80px;
             height: 80px;
@@ -441,10 +463,12 @@
             font-size: 40px;
             margin: 0 auto 20px;
         }
+
         .modal-success h2 {
             margin-bottom: 10px;
             color: #101828;
         }
+
         .modal-success p {
             color: #667085;
             margin-bottom: 24px;
@@ -455,6 +479,7 @@
             padding: 30px 20px;
             max-width: 400px;
         }
+
         .modal-confirm .icon {
             width: 70px;
             height: 70px;
@@ -467,21 +492,25 @@
             font-size: 34px;
             margin: 0 auto 16px;
         }
+
         .modal-confirm h2 {
             font-size: 20px;
             margin-bottom: 8px;
             color: #101828;
         }
+
         .modal-confirm p {
             color: #667085;
             margin-bottom: 24px;
             font-size: 14px;
         }
+
         .confirm-actions {
             display: flex;
             gap: 12px;
             justify-content: center;
         }
+
         .confirm-actions .btn {
             flex: 1;
         }
@@ -767,6 +796,7 @@
                 padding: 14px;
             }
         }
+
         /* BCA Ledger Style (Rekening Koran) */
         .bca-ledger-wrap {
             background: #fff;
@@ -872,10 +902,29 @@
         }
 
         @media (max-width: 640px) {
-            .bca-ledger thead { display: none; }
-            .bca-ledger tr { display: block; padding: 15px; border-bottom: 1px solid #f2f4f7; }
-            .bca-ledger td { display: block; padding: 0; border: none; width: 100% !important; text-align: left !important; margin-bottom: 8px; }
-            .bca-ledger td:last-child { margin-bottom: 0; }
+            .bca-ledger thead {
+                display: none;
+            }
+
+            .bca-ledger tr {
+                display: block;
+                padding: 15px;
+                border-bottom: 1px solid #f2f4f7;
+            }
+
+            .bca-ledger td {
+                display: block;
+                padding: 0;
+                border: none;
+                width: 100% !important;
+                text-align: left !important;
+                margin-bottom: 8px;
+            }
+
+            .bca-ledger td:last-child {
+                margin-bottom: 0;
+            }
+
             .bca-ledger td::before {
                 content: attr(data-label);
                 display: block;
@@ -905,7 +954,7 @@
             `;
             container.appendChild(toast);
             setTimeout(() => {
-                if(toast.parentElement) {
+                if (toast.parentElement) {
                     toast.style.opacity = '0';
                     toast.style.transform = 'translateX(100%)';
                     toast.style.transition = 'all 0.3s ease';
@@ -932,22 +981,37 @@
             yesBtn.textContent = btnText;
             yesBtn.className = 'btn ' + btnClass;
             if (btnClass === 'btn-danger') {
-                icon.style.background = '#fef2f2'; icon.style.color = '#d92d20'; icon.textContent = '!';
+                icon.style.background = '#fef2f2';
+                icon.style.color = '#d92d20';
+                icon.textContent = '!';
             } else {
-                icon.style.background = '#eff6ff'; icon.style.color = '#1d4ed8'; icon.textContent = '?';
+                icon.style.background = '#eff6ff';
+                icon.style.color = '#1d4ed8';
+                icon.textContent = '?';
             }
             modal.classList.add('active');
             confirmCallback = callback;
         }
+
         function updateClock() {
             const now = new Date();
-            const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const optionsDate = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
             const dateStr = now.toLocaleDateString('id-ID', optionsDate);
-            const timeStr = now.toLocaleTimeString('id-ID', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
-            
+            const timeStr = now.toLocaleTimeString('id-ID', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            }).replace(/\./g, ':');
+
             const dateEl = document.getElementById('clock-date');
             const timeEl = document.getElementById('clock-time');
-            
+
             if (dateEl) dateEl.textContent = dateStr;
             if (timeEl) timeEl.textContent = timeStr;
         }
@@ -955,7 +1019,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             updateClock();
             setInterval(updateClock, 1000);
-            
+
             // Sidebar Toggle
             const toggle = document.getElementById('sidebar-toggle');
             const sidebar = document.getElementById('app-sidebar');
@@ -993,8 +1057,8 @@
                         <div style="font-size:22px;font-weight:700;"><?= htmlspecialchars($title ?? 'TOKO AL-HARIST') ?></div>
                     </div>
                     <div class="small" style="color: #667085; font-weight: 500;">
-                        <span style="color: var(--red); font-weight: 700;">Toko Al-Harist</span> 
-                        <span style="margin: 0 4px; color: var(--line);">|</span> 
+                        <span style="color: var(--red); font-weight: 700;">Toko Al-Harist</span>
+                        <span style="margin: 0 4px; color: var(--line);">|</span>
                         Jl. Raya Serang Km.32 RT.09/RW.06 Ds. Sumur Bandung Kec. Jayanti
                     </div>
                 </div>
@@ -1006,7 +1070,7 @@
                 </div>
             </div>
             <div class="toast-container" id="toast-container"></div>
-            
+
             <div class="modal-backdrop" id="success-modal-backdrop">
                 <div class="modal modal-success">
                     <div class="icon">✓</div>
@@ -1026,7 +1090,8 @@
                         <button type="button" class="btn btn-danger" id="confirm-modal-yes">Ya, Lanjutkan</button>
                     </div>
                 </div>
-            </div>            <script>
+            </div>
+            <script>
                 document.getElementById('confirm-modal-yes').addEventListener('click', function() {
                     if (confirmCallback) confirmCallback();
                     document.getElementById('confirm-modal-backdrop').classList.remove('active');
