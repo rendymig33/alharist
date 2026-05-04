@@ -87,6 +87,7 @@ class Keuangan_model extends Model
             }
 
             $this->updateVaultBalance($sourceVaultId, -1 * $amount);
+            $targetVaultId = 0; // Pastikan target kosong untuk pembelian
         } elseif ($type === 'dana_masuk') {
             if ($targetVaultId <= 0) {
                 $this->db->rollBack();
@@ -94,6 +95,7 @@ class Keuangan_model extends Model
             }
 
             $this->updateVaultBalance($targetVaultId, $amount);
+            $sourceVaultId = 0; // Pastikan source kosong untuk dana masuk
         } else {
             $this->db->rollBack();
             return false;
@@ -124,7 +126,7 @@ class Keuangan_model extends Model
             'target_vault_id' => $targetVaultId ?: null,
             'amount' => $amount,
             'notes' => $notes,
-            'transaction_date' => date('Y-m-d'),
+            'transaction_date' => !empty($data['transaction_date']) ? $data['transaction_date'] : date('Y-m-d'),
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
@@ -192,18 +194,12 @@ class Keuangan_model extends Model
     public function transactionsByVault(int $vaultId): array
     {
         $vault = $this->findVault($vaultId);
-        $currentBalance = (float) ($vault['balance'] ?? 0);
+        $finalBalance = (float) ($vault['balance'] ?? 0);
 
         $manualStatement = $this->db->prepare("
             SELECT
-                vt.id,
-                vt.transaction_date,
-                vt.created_at,
-                vt.amount,
-                vt.notes,
-                vt.transaction_type,
-                vt.source_vault_id,
-                vt.target_vault_id,
+                vt.id, vt.transaction_date, vt.created_at, vt.amount, vt.notes,
+                vt.transaction_type, vt.source_vault_id, vt.target_vault_id,
                 source.bank_name AS source_bank_name,
                 target.bank_name AS target_bank_name,
                 'manual' AS source_module
@@ -217,19 +213,13 @@ class Keuangan_model extends Model
 
         $salesStatement = $this->db->prepare("
             SELECT
-                sale_items.id,
-                sales.transaction_date,
-                sales.created_at,
-                sale_items.line_profit AS amount,
-                sales.invoice_no AS notes,
-                'penjualan' AS transaction_type,
-                NULL AS source_vault_id,
+                sale_items.id, sales.transaction_date, sales.created_at,
+                sale_items.line_profit AS amount, sales.invoice_no AS notes,
+                'penjualan' AS transaction_type, NULL AS source_vault_id,
                 COALESCE(sale_items.vault_id, sales.vault_id) AS target_vault_id,
-                CASE
-                    WHEN sales.payment_type = 'Tunai' THEN 'CASH'
-                    WHEN sales.payment_type = 'QRIS' THEN 'QRIS'
-                    ELSE COALESCE(sales.payment_type, '')
-                END AS source_bank_name,
+                CASE WHEN sales.payment_type = 'Tunai' THEN 'CASH'
+                     WHEN sales.payment_type = 'QRIS' THEN 'QRIS'
+                     ELSE COALESCE(sales.payment_type, '') END AS source_bank_name,
                 vaults.bank_name AS target_bank_name,
                 'transaksi' AS source_module
             FROM sale_items
@@ -243,25 +233,16 @@ class Keuangan_model extends Model
 
         $debtPaymentStatement = $this->db->prepare("
             SELECT
-                debt_payments.id,
-                debt_payments.payment_date AS transaction_date,
-                debt_payments.payment_date AS created_at,
-                debt_payments.amount,
-                CASE
-                    WHEN COALESCE(sales.invoice_no, '') <> '' AND COALESCE(customers.name, '') <> '' THEN sales.invoice_no
-                    WHEN COALESCE(sales.invoice_no, '') <> '' THEN sales.invoice_no
-                    WHEN COALESCE(customers.name, '') <> '' THEN customers.name
-                    ELSE 'Pelunasan Hutang'
-                END AS notes,
-                'pelunasan_hutang' AS transaction_type,
-                'PELANGGAN HUTANG' AS source_bank_name,
-                vaults.bank_name AS target_bank_name,
-                debt_payments.vault_id AS target_vault_id,
+                debt_payments.id, debt_payments.payment_date AS transaction_date,
+                debt_payments.payment_date AS created_at, debt_payments.amount,
+                CASE WHEN COALESCE(sales.invoice_no, '') <> '' THEN sales.invoice_no
+                     ELSE 'Pelunasan Hutang' END AS notes,
+                'pelunasan_hutang' AS transaction_type, 'PELANGGAN HUTANG' AS source_bank_name,
+                vaults.bank_name AS target_bank_name, debt_payments.vault_id AS target_vault_id,
                 'hutang' AS source_module
             FROM debt_payments
             INNER JOIN debts ON debts.id = debt_payments.debt_id
             LEFT JOIN sales ON sales.id = debts.sale_id
-            LEFT JOIN customers ON customers.id = debts.customer_id
             LEFT JOIN vaults ON vaults.id = debt_payments.vault_id
             WHERE debt_payments.vault_id = :vault_id
         ");
@@ -269,21 +250,56 @@ class Keuangan_model extends Model
         $debtPaymentRows = $debtPaymentStatement->fetchAll(PDO::FETCH_ASSOC);
 
         $rows = array_merge($manualRows, $salesRows, $debtPaymentRows);
+        
+        // Urutkan dari TERTUA ke TERBARU
         usort($rows, function (array $a, array $b): int {
-            return strcmp(($b['created_at'] ?? ''), ($a['created_at'] ?? ''));
+            $timeA = $a['created_at'] ?? '';
+            $timeB = $b['created_at'] ?? '';
+            if ($timeA === $timeB) {
+                return (int)($a['id'] ?? 0) - (int)($b['id'] ?? 0);
+            }
+            return strcmp($timeA, $timeB);
         });
 
-        $runningBalance = $currentBalance;
+        // Hitung total mutasi untuk mencari Saldo Awal (Working backwards)
+        $totalDebet = 0;
+        $totalKredit = 0;
+        foreach ($rows as $row) {
+            $isTarget = (int) ($row['target_vault_id'] ?? 0) === $vaultId;
+            $isSource = (int) ($row['source_vault_id'] ?? 0) === $vaultId;
+            if (in_array((string) ($row['transaction_type'] ?? ''), ['penjualan', 'pelunasan_hutang'], true)) {
+                $isTarget = true; $isSource = false;
+            }
+            
+            if ($isTarget) $totalDebet += (float)($row['amount'] ?? 0);
+            if ($isSource) $totalKredit += (float)($row['amount'] ?? 0);
+        }
+        
+        $startingBalance = $finalBalance - $totalDebet + $totalKredit;
+        
+        // Hitung Saldo Berjalan (Running Balance) dari Atas ke Bawah
+        $currentRunning = $startingBalance;
         foreach ($rows as &$row) {
-            $isInflow = (int) ($row['target_vault_id'] ?? 0) === $vaultId
-                || in_array((string) ($row['transaction_type'] ?? ''), ['penjualan', 'pelunasan_hutang'], true);
-            $kredit = $isInflow ? (float) ($row['amount'] ?? 0) : 0;
-            $debet = $isInflow ? 0 : (float) ($row['amount'] ?? 0);
+            $type = (string) ($row['transaction_type'] ?? '');
+            $isTarget = (int) ($row['target_vault_id'] ?? 0) === $vaultId;
+            $isSource = (int) ($row['source_vault_id'] ?? 0) === $vaultId;
 
+            // Prioritaskan jenis transaksi untuk menentukan arah uang
+            if (in_array($type, ['penjualan', 'pelunasan_hutang', 'dana_masuk'], true)) {
+                $isTarget = true; $isSource = false;
+            } elseif ($type === 'pembelian') {
+                $isTarget = false; $isSource = true;
+            }
+
+            // User Request: Kredit = Masuk, Debet = Keluar (Standar Perbankan/Buku Tabungan)
+            $kredit = $isTarget ? (float) ($row['amount'] ?? 0) : 0;
+            $debet = $isSource ? (float) ($row['amount'] ?? 0) : 0;
+
+            $currentRunning = $currentRunning + $kredit - $debet;
+            
             $row['debet'] = $debet;
             $row['kredit'] = $kredit;
-            $row['ending_balance'] = $runningBalance;
-            $runningBalance = $runningBalance - $kredit + $debet;
+            $row['ending_balance'] = $currentRunning;
         }
         unset($row);
 

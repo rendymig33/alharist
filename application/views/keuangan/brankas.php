@@ -351,42 +351,51 @@ $totalPages = $totalPages ?? 1;
             </div>
             <div class="detail-box" style="margin-bottom:18px;">
                 <div class="small">Saldo Brankas Saat Ini</div>
-                <strong style="font-size:24px; display:block; margin-top:6px;">
+                <strong id="modal-balance-<?= (int) $vault['id'] ?>" style="font-size:24px; display:block; margin-top:6px;">
                     <?= rupiah((float) $vault['balance']) ?>
-                    <span id="modal-pecahan-summary-<?= (int) $vault['id'] ?>" style="font-size: 14px; font-weight: 600; color: #64748b; margin-left: 10px;"></span>
-                    <span id="modal-selisih-summary-<?= (int) $vault['id'] ?>" style="font-size: 13px; font-weight: 700; margin-left: 5px;"></span>
                 </strong>
+                <span id="modal-pecahan-summary-<?= (int) $vault['id'] ?>" style="font-size: 14px; font-weight: 600; color: #64748b; margin-left: 10px;"></span>
+                <span id="modal-selisih-summary-<?= (int) $vault['id'] ?>" style="font-size: 13px; font-weight: 700; margin-left: 5px;"></span>
             </div>
             <form method="post" class="vault-transaction-form" data-vault-id="<?= (int) $vault['id'] ?>">
                 <input type="hidden" name="action" value="save_transaction">
-                <div class="vault-transaction-grid">
+                <input type="hidden" name="active_vault_id" value="<?= (int) $vault['id'] ?>">
+                <div class="form-grid">
                     <div>
                         <div class="small">Jenis Transaksi</div>
-                        <select name="transaction_type" id="transaction_type_<?= (int) $vault['id'] ?>" data-vault-id="<?= (int) $vault['id'] ?>" required>
+                        <select name="transaction_type" class="transaction-type-select" data-vault-id="<?= (int) $vault['id'] ?>">
+                            <option value="dana_masuk" selected>Dana Masuk (Lain-lain)</option>
+                            <option value="pembelian">Pembelian (Uang Keluar)</option>
                             <option value="switching_dana">Switching Dana</option>
-                            <option value="pembelian">Pembelian</option>
-                            <option value="dana_masuk">Dana Masuk</option>
                         </select>
                     </div>
                     <div>
+                        <div class="small">Tanggal Transaksi</div>
+                        <input type="date" name="transaction_date" value="<?= date('Y-m-d') ?>" required>
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-top:12px;">
+                    <div>
                         <div class="small">Nominal</div>
-                        <input class="money-input" name="amount" type="text" placeholder="Nominal transaksi" required>
+                        <input type="text" name="amount" class="money-input" placeholder="Nominal transaksi" required autocomplete="off">
                     </div>
-                    <div id="source-vault-group-<?= (int) $vault['id'] ?>">
-                        <div class="small">Dari Brankas</div>
-                        <select name="source_vault_id">
-                            <option value="0">Pilih Brankas Sumber</option>
-                            <?php foreach ($vaults as $sourceVault): ?>
-                                <option value="<?= (int) $sourceVault['id'] ?>" <?= (int) $sourceVault['id'] === (int) $vault['id'] ? 'selected' : '' ?>><?= htmlspecialchars((string) $sourceVault['bank_name']) ?></option>
-                            <?php endforeach; ?>
+                </div>
+                <div class="vault-transaction-grid">
+                    <div id="source-vault-group-<?= (int) $vault['id'] ?>" style="display:none;">
+                        <div class="small">Dari Brankas (Terkunci)</div>
+                        <select class="form-control" disabled>
+                            <option value="<?= (int) $vault['id'] ?>" selected><?= htmlspecialchars((string) $vault['bank_name']) ?></option>
                         </select>
+                        <input type="hidden" name="source_vault_id" value="<?= (int) $vault['id'] ?>">
                     </div>
-                    <div id="target-vault-group-<?= (int) $vault['id'] ?>">
-                        <div class="small">Ke Brankas</div>
-                        <select name="target_vault_id">
-                            <option value="0">Pilih Brankas Tujuan</option>
+                    <div id="target-vault-group-<?= (int) $vault['id'] ?>" style="display:none;">
+                        <div class="small">Ke Brankas (Tujuan Switching)</div>
+                        <select name="target_vault_id" class="form-control">
                             <?php foreach ($vaults as $targetVault): ?>
-                                <option value="<?= (int) $targetVault['id'] ?>" <?= (int) $targetVault['id'] === (int) $vault['id'] ? 'selected' : '' ?>><?= htmlspecialchars((string) $targetVault['bank_name']) ?></option>
+                                <?php if ((int)$targetVault['id'] !== (int)$vault['id']): ?>
+                                    <option value="<?= (int) $targetVault['id'] ?>"><?= htmlspecialchars((string) $targetVault['bank_name']) ?></option>
+                                <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -406,52 +415,18 @@ $totalPages = $totalPages ?? 1;
                             <tr>
                                 <th>Tanggal</th>
                                 <th>Keterangan</th>
-                                <th style="text-align:right;">Mutasi</th>
+                                <th style="text-align:right;">Kredit (Masuk)</th>
+                                <th style="text-align:right;">Debet (Keluar)</th>
                                 <th style="text-align:right;">Saldo</th>
                                 <th style="text-align:right;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach (($transactionsByVault[(int) $vault['id']] ?? []) as $transaction): ?>
-                                <?php
-                                $typeLabel = match ($transaction['transaction_type']) {
-                                    'switching_dana' => 'SWITCHING',
-                                    'pembelian' => 'PEMBELIAN',
-                                    'dana_masuk' => 'DANA MASUK',
-                                    'penjualan' => 'PENJUALAN',
-                                    'pelunasan_hutang' => 'PELUNASAN HTG',
-                                    default => strtoupper((string) $transaction['transaction_type']),
-                                };
-                                $sourceLabel = trim((string) ($transaction['source_bank_name'] ?? ''));
-                                $targetLabel = trim((string) ($transaction['target_bank_name'] ?? ''));
-                                
-                                $isDebit = (float)($transaction['debet'] ?? 0) > 0;
-                                $amount = $isDebit ? (float)$transaction['debet'] : (float)($transaction['kredit'] ?? 0);
+                                <?php 
+                                    $vaultId = (int) $vault['id'];
+                                    include 'application/views/keuangan/brankas_history_row.php'; 
                                 ?>
-                                <tr>
-                                    <td class="date" data-label="Tanggal"><?= htmlspecialchars((string) $transaction['transaction_date']) ?></td>
-                                    <td class="desc" data-label="Keterangan">
-                                        <span class="desc-main"><?= htmlspecialchars($typeLabel) ?></span>
-                                        <span class="desc-sub"><?= htmlspecialchars((string) ($transaction['notes'] ?: 'Tanpa catatan')) ?></span>
-                                        <?php if ($sourceLabel !== '' || $targetLabel !== ''): ?>
-                                            <span class="desc-sub"><?= htmlspecialchars($sourceLabel) ?> Ke <?= htmlspecialchars($targetLabel) ?></span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="amount <?= $isDebit ? 'db' : 'cr' ?>" data-label="Mutasi">
-                                        <?= number_format($amount, 0, ',', '.') ?>
-                                        <span class="type-label <?= $isDebit ? 'type-db' : 'type-cr' ?>"><?= $isDebit ? 'DB' : 'CR' ?></span>
-                                    </td>
-                                    <td class="balance" data-label="Saldo">
-                                        <?= number_format((float) ($transaction['ending_balance'] ?? 0), 0, ',', '.') ?>
-                                    </td>
-                                    <td style="text-align:right;" data-label="Aksi">
-                                        <?php if (($transaction['source_module'] ?? '') === 'manual'): ?>
-                                            <button type="button" class="btn btn-danger delete-transaction-btn" style="padding: 4px 8px; font-size: 11px;" data-transaction-id="<?= (int) $transaction['id'] ?>" data-vault-id="<?= (int) $vault['id'] ?>">Delete</button>
-                                        <?php else: ?>
-                                            <span class="small" style="font-size:10px;"><?= htmlspecialchars((string) $transaction['source_module']) ?></span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -555,8 +530,8 @@ $totalPages = $totalPages ?? 1;
                 const hCount = parseInt(hInput.value) || 0;
                 const totalLembar = kCount + hCount;
 
-                // Memberi warna merah jika kemarin kosong (sesuai permintaan user)
-                if (kCount === 0) {
+                // Memberi warna merah jika total lembar di baris ini masih kosong
+                if (totalLembar === 0) {
                     kInput.style.backgroundColor = '#fef2f2'; // Merah muda transparan
                     kInput.style.borderColor = '#fda29b';
                     kInput.style.color = '#b42318';
@@ -679,7 +654,6 @@ $totalPages = $totalPages ?? 1;
                     rows.forEach(function(row) {
                         const kInput = row.querySelector('.input-kemarin');
                         const hInput = row.querySelector('.input-hari-ini');
-                        const nilai = kInput.dataset.nilai;
                         
                         const kCount = parseInt(kInput.value) || 0;
                         const hCount = parseInt(hInput.value) || 0;
@@ -687,10 +661,13 @@ $totalPages = $totalPages ?? 1;
                         kInput.value = kCount + hCount; // Akumulasi ke kemarin
                         hInput.value = ''; // Kosongkan hari ini
                     });
+                    
+                    // Refresh tampilan setelah update nilai
+                    updateVaultSummary(id);
                 }
                 
-                togglePecahanModal(id, false);
-                showToast('Data pecahan berhasil disimpan dan diakumulasikan!');
+                showToast('Data pecahan berhasil disimpan!');
+                // togglePecahanModal(id, false); // Dinonaktifkan: user tutup manual
             };
         });
 
@@ -727,10 +704,19 @@ $totalPages = $totalPages ?? 1;
                         showSuccessModal(result.message);
                         button.closest('tr').remove();
                         // Update UI balance
-                        const balanceEl = document.querySelector(`.vault-balance[data-id="${vaultId}"]`);
+                        const balanceEl = document.getElementById('vault-balance-display-' + vaultId);
                         if (balanceEl) {
                             const newBalance = result.new_balance;
-                            balanceEl.textContent = 'Rp ' + Math.round(newBalance).toLocaleString('id-ID');
+                            const formatted = 'Rp ' + Math.round(newBalance).toLocaleString('id-ID');
+                            balanceEl.innerHTML = formatted + '<div id="vault-pecahan-summary-' + vaultId + '" style="font-size: 14px; font-weight: 600; color: #64748b; margin-top: 4px;"></div>';
+                            balanceEl.dataset.balance = newBalance;
+                            
+                            // Update modal balance too
+                            const modalBalanceEl = document.getElementById('modal-balance-' + vaultId);
+                            if (modalBalanceEl) modalBalanceEl.textContent = formatted;
+
+                            // Refresh pecahan summary if any
+                            if (window.updateVaultSummary) window.updateVaultSummary(vaultId);
                         }
                     } else {
                         showToast(result.message, 'warning');
@@ -747,23 +733,141 @@ $totalPages = $totalPages ?? 1;
 
         setupDeleteHandlers();
 
-        document.querySelectorAll('[id^=\"transaction_type_\"]').forEach(function(transactionType) {
+        document.querySelectorAll('.transaction-type-select').forEach(function(transactionType) {
             const vaultId = transactionType.dataset.vaultId;
             const sourceGroup = document.getElementById('source-vault-group-' + vaultId);
             const targetGroup = document.getElementById('target-vault-group-' + vaultId);
 
             function syncTransactionForm() {
-                if (!sourceGroup || !targetGroup) {
-                    return;
-                }
-
+                if (!sourceGroup || !targetGroup) return;
                 const type = transactionType.value;
-                sourceGroup.style.display = type === 'dana_masuk' ? 'none' : '';
-                targetGroup.style.display = type === 'pembelian' ? 'none' : '';
+                
+                // Brankas Sumber selalu disembunyikan (sudah otomatis dari brankas ini)
+                sourceGroup.style.display = 'none';
+                
+                // Ke Brankas hanya muncul untuk Switching Dana
+                targetGroup.style.display = (type === 'switching_dana') ? '' : 'none';
+            }
+
+
+                // Refresh balance when any vault modal (transaction, pecahan, edit) is closed
+                document.querySelectorAll('.modal[data-vault-id]').forEach(function(mod) {
+                    mod.addEventListener('hidden.bs.modal', function () {
+                        const vaultId = mod.dataset.vaultId;
+                        // Fetch latest balance via AJAX endpoint
+                        fetch(`${window.location.pathname}?ajax_balance=1&vault_id=${vaultId}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data && typeof data.balance !== 'undefined') {
+                                    const formatted = 'Rp ' + Math.round(data.balance).toLocaleString('id-ID');
+                                    const cardEl = document.getElementById('vault-balance-display-' + vaultId);
+                                    if (cardEl) {
+                                        cardEl.innerHTML = formatted + '<div id="vault-pecahan-summary-' + vaultId + '" style="font-size: 14px; font-weight: 600; color: #64748b; margin-top: 4px;">' + (cardEl.dataset.summary || '') + '</div>';
+                                        cardEl.dataset.balance = data.balance;
+                                    }
+                                    const modalEl = document.getElementById('modal-balance-' + vaultId);
+                                    if (modalEl) modalEl.textContent = formatted;
+                                }
+                            })
+                            .catch(err => console.error('Error refreshing balance:', err));
+                    });
+                });
+
+            // Input money formatting
+            const amountInput = transactionType.closest('form').querySelector('.money-input');
+            if (amountInput) {
+                amountInput.addEventListener('input', function(e) {
+                    let value = this.value.replace(/[^0-9]/g, '');
+                    if (value !== '') {
+                        this.value = parseInt(value).toLocaleString('id-ID');
+                    }
+                });
             }
 
             transactionType.addEventListener('change', syncTransactionForm);
             syncTransactionForm();
+        });
+
+        document.querySelectorAll('.vault-transaction-form').forEach(function(form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const vaultId = form.dataset.vaultId; // Ambil dari form attribute
+                const button = form.querySelector('button[type="submit"]');
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Menyimpan...';
+
+                const formData = new FormData(form);
+                // Pastikan active_vault_id terkirim
+                formData.set('active_vault_id', vaultId);
+
+                try {
+                    const response = await fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    // Cek jika response bukan JSON (misal ada PHP error)
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        const text = await response.text();
+                        console.error('Non-JSON response:', text);
+                        showToast('Server error. Cek console.', 'warning');
+                        button.disabled = false;
+                        button.textContent = originalText;
+                        return;
+                    }
+
+                    const result = await response.json();
+                    if (result.success) {
+                        showSuccessModal(result.message);
+                        
+                        // Update saldo
+                        const newBalance = result.new_balance !== undefined ? result.new_balance : 0;
+                        const formatted = 'Rp ' + Math.round(newBalance).toLocaleString('id-ID');
+                        
+                        const cardBalanceEl = document.getElementById('vault-balance-display-' + vaultId);
+                        if (cardBalanceEl) {
+                            cardBalanceEl.innerHTML = formatted + '<div id="vault-pecahan-summary-' + vaultId + '" style="font-size: 14px; font-weight: 600; color: #64748b; margin-top: 4px;"></div>';
+                            cardBalanceEl.dataset.balance = newBalance;
+                        }
+                        
+                        const modalBalanceEl = document.getElementById('modal-balance-' + vaultId);
+                        if (modalBalanceEl) modalBalanceEl.textContent = formatted;
+
+                        // Reset form tapi pertahankan hidden fields
+                        const activeVaultHidden = form.querySelector('input[name="active_vault_id"]');
+                        const sourceVaultHidden = form.querySelector('input[name="source_vault_id"]');
+                        const savedActiveVault = activeVaultHidden ? activeVaultHidden.value : vaultId;
+                        const savedSourceVault = sourceVaultHidden ? sourceVaultHidden.value : vaultId;
+                        
+                        form.reset();
+                        
+                        // Pulihkan hidden fields setelah reset
+                        if (activeVaultHidden) activeVaultHidden.value = savedActiveVault;
+                        if (sourceVaultHidden) sourceVaultHidden.value = savedSourceVault;
+                        
+                        form.querySelector('select.transaction-type-select, select[name="transaction_type"]').dispatchEvent(new Event('change'));
+
+                        // Update tabel riwayat dengan HTML dari server
+                        const historyTbody = document.querySelector(`#vault-transaction-modal-${vaultId} .bca-ledger tbody`);
+                        if (historyTbody && result.history_html !== undefined) {
+                            historyTbody.innerHTML = result.history_html;
+                            setupDeleteHandlers();
+                        }
+                    } else {
+                        showToast(result.message || 'Transaksi gagal disimpan.', 'warning');
+                    }
+                    button.disabled = false;
+                    button.textContent = originalText;
+                } catch (error) {
+                    console.error('Submit error:', error);
+                    showToast('Terjadi kesalahan koneksi. Cek console.', 'warning');
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            });
         });
 
 

@@ -6,36 +6,94 @@ class Keuangan_controller extends Controller
     public function brankas(): void
     {
         $model = $this->model('Keuangan_model');
+
+        if (isset($_GET['ajax_balance']) && ($_GET['vault_id'] ?? 0) > 0) {
+            $ajaxVaultId = (int) $_GET['vault_id'];
+            $ajaxVault = $model->findVault($ajaxVaultId);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'balance' => $ajaxVault ? (float) $ajaxVault['balance'] : 0,
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         $editVault = null;
         $keyword = trim((string) ($_GET['q'] ?? ''));
+        $currentPage = (int) ($_GET['p'] ?? 1);
         $activeTransactionVaultId = isset($_GET['transaksi']) ? (int) $_GET['transaksi'] : 0;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $isAjax = (string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
+            $action = post('action');
 
-            if (post('action') === 'save_transaction') {
-                $targetVaultId = (int) post('target_vault_id', 0);
+            if ($action === 'save_transaction') {
+                $type = (string) post('transaction_type');
                 $sourceVaultId = (int) post('source_vault_id', 0);
-                $redirectVaultId = $targetVaultId > 0 ? $targetVaultId : $sourceVaultId;
+                $targetVaultId = (int) post('target_vault_id', 0);
+                $activeVaultId = (int) post('active_vault_id', 0);
+                
+                // Jika active_vault_id kosong (misal belum refresh), gunakan salah satu ID yang ada
+                if ($activeVaultId <= 0) $activeVaultId = $sourceVaultId ?: $targetVaultId;
+
+                // Paksa pemetaan sesuai logika "Brankas Aktif"
+                if ($type === 'dana_masuk') {
+                    $targetVaultId = $activeVaultId;
+                    $sourceVaultId = 0;
+                } elseif ($type === 'pembelian') {
+                    $sourceVaultId = $activeVaultId;
+                    $targetVaultId = 0;
+                } elseif ($type === 'switching_dana') {
+                    $sourceVaultId = $activeVaultId;
+                    // targetVaultId tetap dari input select
+                }
+
+                $redirectVaultId = $activeVaultId;
+                
+                // Robust unformatting untuk nominal bertitik
+                $amountRaw = (string) post('amount');
+                $amount = (float) str_replace(['.', ','], ['', '.'], $amountRaw);
+
                 $saved = $model->recordVaultTransaction([
-                    'transaction_type' => post('transaction_type'),
+                    'transaction_type' => $type,
                     'source_vault_id' => $sourceVaultId,
                     'target_vault_id' => $targetVaultId,
-                    'amount' => unformat_number((string) post('amount')),
+                    'amount' => $amount,
                     'notes' => post('notes'),
+                    'transaction_date' => post('transaction_date'),
                 ]);
 
                 if ($isAjax) {
+                    // Bersihkan semua output sebelumnya agar JSON tidak korup
+                    while (ob_get_level() > 0) ob_end_clean();
+                    ob_start();
+                    
+                    $vault = $model->findVault($redirectVaultId);
+                    $history = $model->transactionsByVault($redirectVaultId);
+                    
+                    // Render HTML baris riwayat
+                    $vaultId = $redirectVaultId;
+                    $rowHtml = '';
+                    foreach ($history as $transaction) {
+                        ob_start();
+                        include 'application/views/keuangan/brankas_history_row.php';
+                        $rowHtml .= ob_get_clean();
+                    }
+                    
+                    // Buang semua output yang tidak sengaja tercetak
+                    ob_end_clean();
+                    
                     header('Content-Type: application/json');
                     echo json_encode([
                         'success' => $saved,
-                        'message' => $saved ? 'Transaksi brankas berhasil disimpan.' : 'Transaksi brankas tidak valid.',
-                    ]);
+                        'message' => $saved ? 'Transaksi berhasil disimpan.' : 'Transaksi tidak valid (nominal 0 atau jenis transaksi salah).',
+                        'new_balance' => $vault ? (float) $vault['balance'] : 0,
+                        'history_html' => $rowHtml,
+                    ], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
 
                 flash($saved ? 'Transaksi brankas berhasil disimpan.' : 'Transaksi brankas tidak valid.', $saved ? 'success' : 'warning');
-                $query = ['route' => 'keuangan/brankas'];
+                $query = ['route' => 'keuangan/brankas', 'p' => $currentPage];
                 if ($redirectVaultId > 0) {
                     $query['transaksi'] = $redirectVaultId;
                 }
@@ -51,16 +109,18 @@ class Keuangan_controller extends Controller
                 $deleted = $model->deleteVaultTransaction((int) post('transaction_id'));
 
                 if ($isAjax) {
+                    $vault = $model->findVault($redirectVaultId);
                     header('Content-Type: application/json');
                     echo json_encode([
                         'success' => $deleted,
                         'message' => $deleted ? 'Transaksi brankas berhasil dihapus.' : 'Transaksi brankas tidak ditemukan.',
+                        'new_balance' => $vault ? $vault['balance'] : 0,
                     ]);
                     exit;
                 }
 
                 flash($deleted ? 'Transaksi brankas berhasil dihapus.' : 'Transaksi brankas tidak ditemukan.', $deleted ? 'success' : 'warning');
-                $query = ['route' => 'keuangan/brankas'];
+                $query = ['route' => 'keuangan/brankas', 'p' => $currentPage];
                 if ($redirectVaultId > 0) {
                     $query['transaksi'] = $redirectVaultId;
                 }
