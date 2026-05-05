@@ -17,6 +17,48 @@ class Keuangan_controller extends Controller
             exit;
         }
 
+        if (isset($_GET['ajax_pecahan']) && (int) ($_GET['vault_id'] ?? 0) > 0) {
+            $pecahanVaultId = (int) $_GET['vault_id'];
+            if (!$model->findVault($pecahanVaultId)) {
+                header('Content-Type: application/json');
+                echo json_encode(new stdClass(), JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            header('Content-Type: application/json');
+            echo json_encode($model->getVaultPecahan($pecahanVaultId), JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $buildAjaxRefresh = function (array $vaultIds) use ($model): array {
+            $vaultIds = array_values(array_unique(array_filter(array_map('intval', $vaultIds), fn(int $id): bool => $id > 0)));
+            $balances = [];
+            $histories = [];
+
+            foreach ($vaultIds as $vaultId) {
+                $vault = $model->findVault($vaultId);
+                $balances[$vaultId] = $vault ? (float) $vault['balance'] : 0;
+
+                $rowHtml = '';
+                foreach ($model->transactionsByVault($vaultId) as $transaction) {
+                    ob_start();
+                    include 'application/views/keuangan/brankas_history_row.php';
+                    $rowHtml .= ob_get_clean();
+                }
+                $histories[$vaultId] = $rowHtml;
+            }
+
+            $keyword = trim((string) ($_GET['q'] ?? ''));
+            $allVaults = $model->allVaults();
+            $filteredVaults = $model->allVaults($keyword);
+
+            return [
+                'balances' => $balances,
+                'histories_html' => $histories,
+                'total_balance' => array_sum(array_map(fn(array $v): float => (float) ($v['balance'] ?? 0), $allVaults)),
+                'filtered_balance' => array_sum(array_map(fn(array $v): float => (float) ($v['balance'] ?? 0), $filteredVaults)),
+            ];
+        };
+
         $editVault = null;
         $keyword = trim((string) ($_GET['q'] ?? ''));
         $currentPage = (int) ($_GET['p'] ?? 1);
@@ -25,6 +67,33 @@ class Keuangan_controller extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $isAjax = (string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
             $action = post('action');
+
+            if ($action === 'save_vault_pecahan') {
+                $pecahanVaultId = (int) post('vault_id', 0);
+                $rawJson = (string) post('pecahan_json', '{}');
+                $decoded = json_decode($rawJson, true);
+                if (!is_array($decoded)) {
+                    $decoded = [];
+                }
+                $clean = [];
+                foreach ($decoded as $k => $v) {
+                    $denom = (int) $k;
+                    if ($denom > 0) {
+                        $clean[$denom] = max(0, (int) $v);
+                    }
+                }
+                $savedPecahan = $model->saveVaultPecahan($pecahanVaultId, $clean);
+                if ($isAjax) {
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => $savedPecahan,
+                        'pecahan' => $clean,
+                    ], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+                flash($savedPecahan ? 'Rincian pecahan tersimpan.' : 'Gagal menyimpan rincian pecahan.', $savedPecahan ? 'success' : 'warning');
+                $this->redirect('keuangan/brankas');
+            }
 
             if ($action === 'save_transaction') {
                 $type = (string) post('transaction_type');
@@ -65,30 +134,14 @@ class Keuangan_controller extends Controller
                 if ($isAjax) {
                     // Bersihkan semua output sebelumnya agar JSON tidak korup
                     while (ob_get_level() > 0) ob_end_clean();
-                    ob_start();
-                    
-                    $vault = $model->findVault($redirectVaultId);
-                    $history = $model->transactionsByVault($redirectVaultId);
-                    
-                    // Render HTML baris riwayat
-                    $vaultId = $redirectVaultId;
-                    $rowHtml = '';
-                    foreach ($history as $transaction) {
-                        ob_start();
-                        include 'application/views/keuangan/brankas_history_row.php';
-                        $rowHtml .= ob_get_clean();
-                    }
-                    
-                    // Buang semua output yang tidak sengaja tercetak
-                    ob_end_clean();
+                    $refresh = $buildAjaxRefresh([$sourceVaultId, $targetVaultId, $redirectVaultId]);
                     
                     header('Content-Type: application/json');
                     echo json_encode([
                         'success' => $saved,
                         'message' => $saved ? 'Transaksi berhasil disimpan.' : 'Transaksi tidak valid (nominal 0 atau jenis transaksi salah).',
-                        'new_balance' => $vault ? (float) $vault['balance'] : 0,
-                        'history_html' => $rowHtml,
-                    ], JSON_UNESCAPED_UNICODE);
+                        'new_balance' => $refresh['balances'][$redirectVaultId] ?? 0,
+                    ] + $refresh, JSON_UNESCAPED_UNICODE);
                     exit;
                 }
 
@@ -106,16 +159,22 @@ class Keuangan_controller extends Controller
 
             if (post('action') === 'delete_transaction') {
                 $redirectVaultId = (int) post('vault_id', 0);
+                $transaction = $model->findVaultTransaction((int) post('transaction_id'));
                 $deleted = $model->deleteVaultTransaction((int) post('transaction_id'));
 
                 if ($isAjax) {
-                    $vault = $model->findVault($redirectVaultId);
+                    $affectedVaultIds = [$redirectVaultId];
+                    if ($transaction) {
+                        $affectedVaultIds[] = (int) ($transaction['source_vault_id'] ?? 0);
+                        $affectedVaultIds[] = (int) ($transaction['target_vault_id'] ?? 0);
+                    }
+                    $refresh = $buildAjaxRefresh($affectedVaultIds);
                     header('Content-Type: application/json');
                     echo json_encode([
                         'success' => $deleted,
                         'message' => $deleted ? 'Transaksi brankas berhasil dihapus.' : 'Transaksi brankas tidak ditemukan.',
-                        'new_balance' => $vault ? $vault['balance'] : 0,
-                    ]);
+                        'new_balance' => $refresh['balances'][$redirectVaultId] ?? 0,
+                    ] + $refresh, JSON_UNESCAPED_UNICODE);
                     exit;
                 }
 

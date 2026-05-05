@@ -61,6 +61,12 @@ CREATE TABLE IF NOT EXISTS vault_transactions (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS vault_pecahan (
+    vault_id INTEGER NOT NULL PRIMARY KEY,
+    pecahan_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     invoice_no TEXT NOT NULL UNIQUE,

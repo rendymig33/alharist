@@ -27,6 +27,83 @@ class Keuangan_model extends Model
         return $statement->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function getVaultPecahan(int $vaultId): array
+    {
+        if ($vaultId <= 0) {
+            return [];
+        }
+
+        $statement = $this->db->prepare('SELECT pecahan_json FROM vault_pecahan WHERE vault_id = :id');
+        $statement->execute(['id' => $vaultId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        if (!$row || (string) ($row['pecahan_json'] ?? '') === '') {
+            return [];
+        }
+
+        $decoded = json_decode((string) $row['pecahan_json'], true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($decoded as $k => $v) {
+            $denom = (int) $k;
+            if ($denom > 0) {
+                $out[(string) $denom] = max(0, (int) $v);
+            }
+        }
+
+        return $out;
+    }
+
+    public function saveVaultPecahan(int $vaultId, array $denomMap): bool
+    {
+        if ($vaultId <= 0 || !$this->findVault($vaultId)) {
+            return false;
+        }
+
+        $clean = [];
+        foreach ($denomMap as $k => $v) {
+            $denom = (int) $k;
+            if ($denom > 0) {
+                $clean[$denom] = max(0, (int) $v);
+            }
+        }
+
+        $json = json_encode($clean, JSON_UNESCAPED_UNICODE);
+        if ($json === false || strlen($json) > 65535) {
+            return false;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'mysql') {
+            $statement = $this->db->prepare('
+                INSERT INTO vault_pecahan (vault_id, pecahan_json, updated_at)
+                VALUES (:vault_id, :pecahan_json, :updated_at)
+                ON DUPLICATE KEY UPDATE pecahan_json = VALUES(pecahan_json), updated_at = VALUES(updated_at)
+            ');
+            $statement->execute([
+                'vault_id' => $vaultId,
+                'pecahan_json' => $json,
+                'updated_at' => $now,
+            ]);
+        } else {
+            $statement = $this->db->prepare('
+                INSERT OR REPLACE INTO vault_pecahan (vault_id, pecahan_json, updated_at)
+                VALUES (:vault_id, :pecahan_json, :updated_at)
+            ');
+            $statement->execute([
+                'vault_id' => $vaultId,
+                'pecahan_json' => $json,
+                'updated_at' => $now,
+            ]);
+        }
+
+        return true;
+    }
+
     public function saveVault(array $data): void
     {
         if (!empty($data['id'])) {
@@ -56,6 +133,13 @@ class Keuangan_model extends Model
             'amount' => $amount,
             'id' => $vaultId,
         ]);
+    }
+
+    public function findVaultTransaction(int $transactionId): array|false
+    {
+        $statement = $this->db->prepare("SELECT * FROM vault_transactions WHERE id = :id");
+        $statement->execute(['id' => $transactionId]);
+        return $statement->fetch(PDO::FETCH_ASSOC);
     }
 
     public function recordVaultTransaction(array $data): bool
@@ -136,9 +220,7 @@ class Keuangan_model extends Model
 
     public function deleteVaultTransaction(int $transactionId): bool
     {
-        $statement = $this->db->prepare("SELECT * FROM vault_transactions WHERE id = :id");
-        $statement->execute(['id' => $transactionId]);
-        $transaction = $statement->fetch(PDO::FETCH_ASSOC);
+        $transaction = $this->findVaultTransaction($transactionId);
 
         if (!$transaction) {
             return false;

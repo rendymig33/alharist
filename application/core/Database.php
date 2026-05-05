@@ -176,6 +176,14 @@ class Database
                 created_at TEXT NOT NULL
             )
         ");
+
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS vault_pecahan (
+                vault_id INTEGER NOT NULL PRIMARY KEY,
+                pecahan_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        ");
     }
 
     private static function migrateMysql(PDO $pdo): void
@@ -235,6 +243,14 @@ class Database
                 created_at DATETIME NOT NULL,
                 PRIMARY KEY (id),
                 KEY idx_stock_opnames_item_id (item_id)
+            )
+        ");
+
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS vault_pecahan (
+                vault_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+                pecahan_json TEXT NOT NULL,
+                updated_at DATETIME NOT NULL
             )
         ");
     }

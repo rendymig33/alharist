@@ -250,11 +250,11 @@ $totalPages = $totalPages ?? 1;
     <div class="vault-summary-grid">
         <div class="detail-box">
             <div class="small">Saldo Keseluruhan</div>
-            <strong style="font-size:24px; display:block; margin-top:6px;"><?= rupiah((float) ($totalBalance ?? 0)) ?></strong>
+            <strong id="vault-total-balance" style="font-size:24px; display:block; margin-top:6px;"><?= rupiah((float) ($totalBalance ?? 0)) ?></strong>
         </div>
         <div class="detail-box">
             <div class="small">Saldo Hasil Filter</div>
-            <strong style="font-size:24px; display:block; margin-top:6px;"><?= rupiah((float) ($filteredBalance ?? 0)) ?></strong>
+            <strong id="vault-filtered-balance" style="font-size:24px; display:block; margin-top:6px;"><?= rupiah((float) ($filteredBalance ?? 0)) ?></strong>
         </div>
     </div>
     <form method="get" class="vault-search">
@@ -501,6 +501,80 @@ $totalPages = $totalPages ?? 1;
             });
         });
 
+        function formatRupiah(value) {
+            const number = Number(value) || 0;
+            return 'Rp ' + Math.round(number).toLocaleString('id-ID');
+        }
+
+        function setVaultBalance(vaultId, balance) {
+            const formatted = formatRupiah(balance);
+            const cardBalanceEl = document.getElementById('vault-balance-display-' + vaultId);
+            if (cardBalanceEl) {
+                const pecahanSummary = document.getElementById('vault-pecahan-summary-' + vaultId);
+                if (cardBalanceEl.firstChild) {
+                    cardBalanceEl.firstChild.textContent = formatted + ' ';
+                } else {
+                    cardBalanceEl.insertBefore(document.createTextNode(formatted + ' '), cardBalanceEl.firstChild);
+                }
+                if (!pecahanSummary) {
+                    const summary = document.createElement('div');
+                    summary.id = 'vault-pecahan-summary-' + vaultId;
+                    summary.style.cssText = 'font-size: 14px; font-weight: 600; color: #64748b; margin-top: 4px;';
+                    cardBalanceEl.appendChild(summary);
+                }
+                cardBalanceEl.dataset.balance = balance;
+            }
+
+            const modalBalanceEl = document.getElementById('modal-balance-' + vaultId);
+            if (modalBalanceEl) modalBalanceEl.textContent = formatted;
+
+            const saldoSistemEl = document.getElementById('saldo-sistem-' + vaultId);
+            if (saldoSistemEl) {
+                saldoSistemEl.textContent = formatted;
+                saldoSistemEl.dataset.balance = balance;
+            }
+
+            if (window.updateVaultSummary) window.updateVaultSummary(vaultId);
+        }
+
+        function applyVaultRefresh(result) {
+            if (!result) return;
+
+            if (result.balances) {
+                Object.keys(result.balances).forEach(function(vaultId) {
+                    setVaultBalance(vaultId, result.balances[vaultId]);
+                });
+            } else if (result.new_balance !== undefined && result.vault_id !== undefined) {
+                setVaultBalance(result.vault_id, result.new_balance);
+            }
+
+            if (result.histories_html) {
+                Object.keys(result.histories_html).forEach(function(vaultId) {
+                    const historyTbody = document.querySelector(`#vault-transaction-modal-${vaultId} .bca-ledger tbody`);
+                    if (historyTbody) {
+                        historyTbody.innerHTML = result.histories_html[vaultId];
+                    }
+                });
+                setupDeleteHandlers();
+            } else if (result.history_html !== undefined && result.vault_id !== undefined) {
+                const historyTbody = document.querySelector(`#vault-transaction-modal-${result.vault_id} .bca-ledger tbody`);
+                if (historyTbody) {
+                    historyTbody.innerHTML = result.history_html;
+                    setupDeleteHandlers();
+                }
+            }
+
+            const totalBalanceEl = document.getElementById('vault-total-balance');
+            if (totalBalanceEl && result.total_balance !== undefined) {
+                totalBalanceEl.textContent = formatRupiah(result.total_balance);
+            }
+
+            const filteredBalanceEl = document.getElementById('vault-filtered-balance');
+            if (filteredBalanceEl && result.filtered_balance !== undefined) {
+                filteredBalanceEl.textContent = formatRupiah(result.filtered_balance);
+            }
+        }
+
         // Global function to update vault summary (both card and modal)
         window.updateVaultSummary = function(vaultId) {
             const container = document.getElementById('pecahan-container-' + vaultId);
@@ -582,93 +656,152 @@ $totalPages = $totalPages ?? 1;
             return dataToSave;
         };
 
+        function pecahanPayloadEmpty(data) {
+            if (data == null) return true;
+            if (Array.isArray(data)) return data.length === 0;
+            if (typeof data !== 'object') return true;
+            return Object.keys(data).length === 0;
+        }
+
+        function applyPecahanRows(rows, parsed) {
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+            rows.forEach(function(row) {
+                const kInput = row.querySelector('.input-kemarin');
+                const nilai = kInput.dataset.nilai;
+                if (parsed[nilai] !== undefined) {
+                    kInput.value = parsed[nilai];
+                }
+            });
+        }
+
+        function clearPecahanRows(rows) {
+            rows.forEach(function(row) {
+                row.querySelectorAll('input').forEach(function(input) {
+                    input.value = '';
+                });
+            });
+        }
+
         // Setup Pecahan Calculator logic
         document.querySelectorAll('.pecahan-container').forEach(function(container) {
             const vaultId = container.id.replace('pecahan-container-', '');
             const rows = container.querySelectorAll('.pecahan-row');
-
-            // Load saved data from localStorage
             const savedData = localStorage.getItem('pecahan_vault_' + vaultId);
+
             if (savedData) {
                 try {
-                    const parsed = JSON.parse(savedData);
-                    rows.forEach(function(row) {
-                        const kInput = row.querySelector('.input-kemarin');
-                        const nilai = kInput.dataset.nilai;
-                        if (parsed[nilai] !== undefined) {
-                            kInput.value = parsed[nilai];
-                        }
-                    });
+                    applyPecahanRows(rows, JSON.parse(savedData));
                 } catch (e) {}
             }
 
-            // Enter key navigation
-            const hInputs = container.querySelectorAll('.input-hari-ini');
-            hInputs.forEach(function(input, index) {
-                input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const next = hInputs[index + 1];
-                        if (next) {
-                            next.focus();
-                        } else {
-                            // Jika sudah yang terakhir, mungkin fokus ke tombol simpan
-                            document.querySelector('.btn-success[onclick^="simpanPecahan"]').focus();
+            function finishPecahanSetup() {
+                const hInputs = container.querySelectorAll('.input-hari-ini');
+                hInputs.forEach(function(input, index) {
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const next = hInputs[index + 1];
+                            if (next) {
+                                next.focus();
+                            } else {
+                                document.querySelector('.btn-success[onclick^="simpanPecahan"]').focus();
+                            }
                         }
-                    }
-                });
-            });
-
-            // Initial hitung & update UI
-            updateVaultSummary(vaultId);
-
-            rows.forEach(function(row) {
-                const inputs = row.querySelectorAll('input');
-                inputs.forEach(function(input) {
-                    input.addEventListener('input', function() {
-                        updateVaultSummary(vaultId);
                     });
                 });
-            });
-            
-            window.resetPecahan = function(id) {
-                askConfirmation('Kosongkan input hari ini saja?', function() {
+
+                updateVaultSummary(vaultId);
+
+                rows.forEach(function(row) {
+                    const inputs = row.querySelectorAll('input');
+                    inputs.forEach(function(input) {
+                        input.addEventListener('input', function() {
+                            updateVaultSummary(vaultId);
+                        });
+                    });
+                });
+
+                window.resetPecahan = function(id) {
+                    askConfirmation('Kosongkan input hari ini saja?', function() {
+                        const ctr = document.getElementById('pecahan-container-' + id);
+                        if (ctr) {
+                            ctr.querySelectorAll('.input-hari-ini').forEach(function(inp) {
+                                inp.value = '';
+                            });
+                            updateVaultSummary(id);
+                        }
+                    }, 'Reset Input', 'Ya, Kosongkan');
+                };
+
+                window.simpanPecahan = async function(id) {
+                    const dataToSave = updateVaultSummary(id);
+
+                    const fd = new FormData();
+                    fd.append('action', 'save_vault_pecahan');
+                    fd.append('vault_id', String(id));
+                    fd.append('pecahan_json', JSON.stringify(dataToSave));
+
+                    let res = null;
+                    try {
+                        const response = await fetch('index.php?route=keuangan/brankas', {
+                            method: 'POST',
+                            body: fd,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        res = await response.json();
+                    } catch (e) {
+                        showToast('Gagal menyimpan ke server. Data belum disinkronkan.', 'warning');
+                        return;
+                    }
+
+                    if (!res || !res.success) {
+                        showToast('Gagal menyimpan pecahan ke server.', 'warning');
+                        return;
+                    }
+
                     const ctr = document.getElementById('pecahan-container-' + id);
                     if (ctr) {
-                        ctr.querySelectorAll('.input-hari-ini').forEach(function(inp) {
-                            inp.value = '';
+                        const mergeRows = ctr.querySelectorAll('.pecahan-row');
+                        mergeRows.forEach(function(row) {
+                            const kInput = row.querySelector('.input-kemarin');
+                            const hInput = row.querySelector('.input-hari-ini');
+                            const kCount = parseInt(kInput.value) || 0;
+                            const hCount = parseInt(hInput.value) || 0;
+                            kInput.value = kCount + hCount;
+                            hInput.value = '';
                         });
                         updateVaultSummary(id);
                     }
-                }, 'Reset Input', 'Ya, Kosongkan');
-            };
 
-            window.simpanPecahan = function(id) {
-                const dataToSave = updateVaultSummary(id); // Final sync and get data
-                localStorage.setItem('pecahan_vault_' + id, JSON.stringify(dataToSave));
-                
-                // Reset inputs 'Hari Ini' agar saat buka lagi sudah jadi 'Kemarin'
-                const ctr = document.getElementById('pecahan-container-' + id);
-                if (ctr) {
-                    const rows = ctr.querySelectorAll('.pecahan-row');
-                    rows.forEach(function(row) {
-                        const kInput = row.querySelector('.input-kemarin');
-                        const hInput = row.querySelector('.input-hari-ini');
-                        
-                        const kCount = parseInt(kInput.value) || 0;
-                        const hCount = parseInt(hInput.value) || 0;
-                        
-                        kInput.value = kCount + hCount; // Akumulasi ke kemarin
-                        hInput.value = ''; // Kosongkan hari ini
-                    });
-                    
-                    // Refresh tampilan setelah update nilai
-                    updateVaultSummary(id);
-                }
-                
-                showToast('Data pecahan berhasil disimpan!');
-                // togglePecahanModal(id, false); // Dinonaktifkan: user tutup manual
-            };
+                    try {
+                        localStorage.setItem('pecahan_vault_' + id, JSON.stringify(res.pecahan || dataToSave));
+                    } catch (e) {}
+                    showToast('Data pecahan berhasil disimpan!');
+                };
+            }
+
+            finishPecahanSetup();
+
+            fetch('index.php?route=keuangan/brankas&ajax_pecahan=1&vault_id=' + encodeURIComponent(vaultId), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(serverData) {
+                    if (!pecahanPayloadEmpty(serverData)) {
+                        applyPecahanRows(rows, serverData);
+                        try {
+                            localStorage.setItem('pecahan_vault_' + vaultId, JSON.stringify(serverData));
+                        } catch (e) {}
+                        updateVaultSummary(vaultId);
+                    } else {
+                        clearPecahanRows(rows);
+                        try {
+                            localStorage.removeItem('pecahan_vault_' + vaultId);
+                        } catch (e) {}
+                        updateVaultSummary(vaultId);
+                    }
+                })
+                .catch(function() {});
         });
 
         function setupDeleteHandlers() {
@@ -702,22 +835,7 @@ $totalPages = $totalPages ?? 1;
                     const result = await response.json();
                     if (result.success) {
                         showSuccessModal(result.message);
-                        button.closest('tr').remove();
-                        // Update UI balance
-                        const balanceEl = document.getElementById('vault-balance-display-' + vaultId);
-                        if (balanceEl) {
-                            const newBalance = result.new_balance;
-                            const formatted = 'Rp ' + Math.round(newBalance).toLocaleString('id-ID');
-                            balanceEl.innerHTML = formatted + '<div id="vault-pecahan-summary-' + vaultId + '" style="font-size: 14px; font-weight: 600; color: #64748b; margin-top: 4px;"></div>';
-                            balanceEl.dataset.balance = newBalance;
-                            
-                            // Update modal balance too
-                            const modalBalanceEl = document.getElementById('modal-balance-' + vaultId);
-                            if (modalBalanceEl) modalBalanceEl.textContent = formatted;
-
-                            // Refresh pecahan summary if any
-                            if (window.updateVaultSummary) window.updateVaultSummary(vaultId);
-                        }
+                        applyVaultRefresh(result);
                     } else {
                         showToast(result.message, 'warning');
                         button.disabled = false;
@@ -822,19 +940,7 @@ $totalPages = $totalPages ?? 1;
                     const result = await response.json();
                     if (result.success) {
                         showSuccessModal(result.message);
-                        
-                        // Update saldo
-                        const newBalance = result.new_balance !== undefined ? result.new_balance : 0;
-                        const formatted = 'Rp ' + Math.round(newBalance).toLocaleString('id-ID');
-                        
-                        const cardBalanceEl = document.getElementById('vault-balance-display-' + vaultId);
-                        if (cardBalanceEl) {
-                            cardBalanceEl.innerHTML = formatted + '<div id="vault-pecahan-summary-' + vaultId + '" style="font-size: 14px; font-weight: 600; color: #64748b; margin-top: 4px;"></div>';
-                            cardBalanceEl.dataset.balance = newBalance;
-                        }
-                        
-                        const modalBalanceEl = document.getElementById('modal-balance-' + vaultId);
-                        if (modalBalanceEl) modalBalanceEl.textContent = formatted;
+                        applyVaultRefresh(result);
 
                         // Reset form tapi pertahankan hidden fields
                         const activeVaultHidden = form.querySelector('input[name="active_vault_id"]');
@@ -850,12 +956,6 @@ $totalPages = $totalPages ?? 1;
                         
                         form.querySelector('select.transaction-type-select, select[name="transaction_type"]').dispatchEvent(new Event('change'));
 
-                        // Update tabel riwayat dengan HTML dari server
-                        const historyTbody = document.querySelector(`#vault-transaction-modal-${vaultId} .bca-ledger tbody`);
-                        if (historyTbody && result.history_html !== undefined) {
-                            historyTbody.innerHTML = result.history_html;
-                            setupDeleteHandlers();
-                        }
                     } else {
                         showToast(result.message || 'Transaksi gagal disimpan.', 'warning');
                     }

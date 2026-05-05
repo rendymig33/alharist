@@ -69,6 +69,12 @@ CREATE TABLE IF NOT EXISTS vault_transactions (
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS vault_pecahan (
+    vault_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+    pecahan_json TEXT NOT NULL,
+    updated_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS sales (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     invoice_no VARCHAR(100) NOT NULL,
