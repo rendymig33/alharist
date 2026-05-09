@@ -21,6 +21,7 @@ $sale = $sale ?? [];
                         <tr>
                             <th>Item / Kode</th>
                             <th style="text-align:right;">Qty</th>
+                            <th style="text-align:right;">Modal</th>
                             <th style="text-align:right;">Harga</th>
                             <th style="text-align:right;">Subtotal</th>
                         </tr>
@@ -34,6 +35,9 @@ $sale = $sale ?? [];
                                 </td>
                                 <td class="amount" data-label="Qty">
                                     <?= format_qty((float) $item['qty']) ?>
+                                </td>
+                                <td class="amount" data-label="Modal">
+                                    <?= number_format((float) ($item['line_cost_live'] ?? 0), 0, ',', '.') ?>
                                 </td>
                                 <td class="amount" data-label="Harga">
                                     <?= number_format((float) $item['selling_price'], 0, ',', '.') ?>
@@ -61,6 +65,10 @@ $sale = $sale ?? [];
                 <div class="detail-box">
                     <div class="small">Metode Pembayaran</div>
                     <strong><?= htmlspecialchars((string) $sale['payment_type']) ?></strong>
+                </div>
+                <div class="detail-box">
+                    <div class="small">Jenis Transaksi</div>
+                    <strong><?= htmlspecialchars((string) ($sale['sale_mode'] ?? 'Transaksi Biasa')) ?></strong>
                 </div>
                 <div class="detail-box">
                     <div class="small">Total Dibayar</div>

@@ -12,23 +12,19 @@ class Transaksi_controller extends Controller
         $transaksiModel = $this->model('Transaksi_model');
 
         $_SESSION['cart'] ??= [];
-        $_SESSION['transaction_mode'] ??= 'biasa';
-        
-        $hour = (int) date('H');
-        $_SESSION['active_shift'] ??= ($hour >= 6 && $hour < 15) ? 1 : 2;
+        $_SESSION['transaction_mode'] ??= 'barang';
+        $_SESSION['transaction_shift'] ??= 1;
+
+        $requestedMode = trim((string) ($_GET['mode'] ?? ''));
+        if (in_array($requestedMode, ['barang', 'esaldo'], true) && $requestedMode !== $_SESSION['transaction_mode']) {
+            $_SESSION['transaction_mode'] = $requestedMode;
+            $_SESSION['cart'] = [];
+            flash('Mode transaksi diganti. Keranjang sebelumnya dikosongkan agar tidak tercampur.', 'warning');
+            $this->redirect('transaksi');
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = post('action');
-            $postedMode = trim((string) post('transaction_mode', $_SESSION['transaction_mode']));
-            if (in_array($postedMode, ['biasa', 'esaldo'], true)) {
-                $_SESSION['transaction_mode'] = $postedMode;
-            }
-
-            if ($action === 'set_shift') {
-                $_SESSION['active_shift'] = (int) post('shift', $_SESSION['active_shift']);
-                flash('Shift aktif berhasil diperbarui.');
-                $this->redirect('transaksi');
-            }
 
             if ($action === 'delete_sale') {
                 $deleted = $transaksiModel->deleteSale((int) post('sale_id'));
@@ -36,7 +32,51 @@ class Transaksi_controller extends Controller
                 $this->redirect('transaksi');
             }
 
+            if ($action === 'set_shift') {
+                $_SESSION['transaction_shift'] = max(1, min(2, (int) post('shift', 1)));
+                flash('Shift transaksi aktif diperbarui.');
+                $this->redirect('transaksi');
+            }
+
             if ($action === 'add_item') {
+                $mode = post('transaction_mode', $_SESSION['transaction_mode']);
+                $_SESSION['transaction_mode'] = in_array($mode, ['barang', 'esaldo'], true) ? $mode : 'barang';
+
+                if ($_SESSION['transaction_mode'] === 'esaldo') {
+                    $item = $esaldoModel->find((int) post('item_id'));
+                    if ($item) {
+                        $qty = max(1, (int) post('qty'));
+                        $purchaseCost = unformat_number((string) post('purchase_price'));
+                        $sellingPrice = unformat_number((string) post('selling_price'));
+
+                        if ($purchaseCost <= 0 || $sellingPrice <= 0) {
+                            flash('Modal dan harga jual E-Saldo wajib diisi.', 'warning');
+                            $this->redirect('transaksi');
+                        }
+
+                        $lineTotal = $qty * $sellingPrice;
+                        $lineCost = $qty * $purchaseCost;
+
+                        $_SESSION['cart'][] = [
+                            'item_id' => (int) $item['id'],
+                            'item_category' => 'E-SALDO',
+                            'vault_id' => 0,
+                            'name' => $item['name'],
+                            'qty' => $qty,
+                            'display_qty' => $qty,
+                            'stock_display' => '-',
+                            'purchase_label' => 'E-Saldo',
+                            'promo_label' => '',
+                            'purchase_price' => $purchaseCost,
+                            'selling_price' => $sellingPrice,
+                            'line_total' => $lineTotal,
+                            'line_profit' => $lineTotal - $lineCost,
+                        ];
+                        flash('E-Saldo ditambahkan ke transaksi.');
+                    }
+                    $this->redirect('transaksi');
+                }
+
                 $item = $barangModel->find((int) post('item_id'));
                 if ($item) {
                     $qty = max(1, (int) post('qty'));
@@ -98,11 +138,12 @@ class Transaksi_controller extends Controller
 
                         $_SESSION['cart'][] = [
                             'item_id' => (int) $item['id'],
+                            'item_category' => (string) ($item['category'] ?? ''),
                             'vault_id' => 0,
                             'name' => $item['name'],
                             'qty' => $stockUsed,
                             'display_qty' => $qty,
-                            'stock_display' => format_stock_breakdown($stockUsed, (string) $item['unit_large'], (string) $item['unit_small'], $smallUnitQty),
+                            'stock_display' => format_stock_breakdown((float)$stockUsed, (string) $item['unit_large'], (string) $item['unit_small'], $smallUnitQty),
                             'purchase_label' => $purchaseLabel,
                             'promo_label' => $promoLabel,
                             'purchase_price' => $purchaseCost,
@@ -116,32 +157,69 @@ class Transaksi_controller extends Controller
                 $this->redirect('transaksi');
             }
 
-            if ($action === 'add_esaldo') {
-                $item = $esaldoModel->find((int) post('item_id'));
-                if ($item) {
-                    $buyPrice = unformat_number((string) post('manual_buy_price'));
-                    $sellPrice = unformat_number((string) post('manual_sell_price'));
-                    $targetNumber = trim((string) post('target_number'));
+            if ($action === 'update_qty') {
+                $index = (int) post('index');
+                $newDisplayQty = max(1, (int) post('qty'));
+                
+                if (isset($_SESSION['cart'][$index])) {
+                    $itemData = $_SESSION['cart'][$index];
+                    $item = $barangModel->find((int) $itemData['item_id']);
+                    
+                    if ($item) {
+                        $smallUnitQty = max(1, (int) ($item['small_unit_qty'] ?? 1));
+                        $costPerSmall = (float) ($item['cost_per_small'] ?? 0);
+                        
+                        $isEceran = ($itemData['purchase_label'] === (string) $item['unit_small']);
+                        $isSetengah = (strpos((string)$itemData['purchase_label'], 'Setengah') !== false);
+                        
+                        $stockUsed = $newDisplayQty * $smallUnitQty;
+                        $sellingPrice = (float) $item['selling_price'];
+                        
+                        if ($isEceran) {
+                            $stockUsed = $newDisplayQty;
+                            $sellingPrice = (float) $item['unit_price'];
+                        } elseif ($isSetengah) {
+                            $stockUsed = (int) ceil($smallUnitQty / 2) * $newDisplayQty;
+                            $sellingPrice = (float) ($item['half_price'] ?? 0);
+                        }
+                        
+                        if ($stockUsed > (float) $item['stock']) {
+                            flash('Stok tidak cukup untuk qty tersebut.', 'warning');
+                        } else {
+                            $lineTotal = $newDisplayQty * $sellingPrice;
+                            $lineCost = $stockUsed * $costPerSmall;
+                            $promoLabel = '';
 
-                    if ($buyPrice <= 0 || $sellPrice <= 0) {
-                        flash('Modal dan harga jual E-Transaction wajib diisi.', 'warning');
-                    } else {
-                        $_SESSION['cart'][] = [
-                            'item_id' => (int) $item['id'],
-                            'vault_id' => 0,
-                            'name' => $item['name'],
-                            'qty' => 1,
-                            'display_qty' => 1,
-                            'stock_display' => $targetNumber,
-                            'purchase_label' => 'E-Transaction',
-                            'promo_label' => $targetNumber !== '' ? 'Tujuan: ' . $targetNumber : '',
-                            'purchase_price' => $buyPrice,
-                            'selling_price' => $sellPrice,
-                            'line_total' => $sellPrice,
-                            'line_profit' => $sellPrice - $buyPrice,
-                            'is_esaldo' => 1,
-                        ];
-                        flash('E-Saldo ditambahkan ke transaksi.');
+                            if ($isEceran) {
+                                $promoRules = [
+                                    ['qty' => (int) ($item['promo_qty_3'] ?? 0), 'price' => (float) ($item['promo_price_3'] ?? 0)],
+                                    ['qty' => (int) ($item['promo_qty_2'] ?? 0), 'price' => (float) ($item['promo_price_2'] ?? 0)],
+                                    ['qty' => (int) ($item['promo_qty_1'] ?? 0), 'price' => (float) ($item['promo_price_1'] ?? 0)],
+                                ];
+                                $remainingQty = $newDisplayQty;
+                                $lineTotal = 0;
+                                $promoParts = [];
+                                foreach ($promoRules as $rule) {
+                                    if ($rule['qty'] <= 0 || $rule['price'] <= 0) continue;
+                                    $bundleCount = intdiv($remainingQty, $rule['qty']);
+                                    if ($bundleCount <= 0) continue;
+                                    $lineTotal += $bundleCount * $rule['price'];
+                                    $remainingQty = $remainingQty % $rule['qty'];
+                                    $promoParts[] = $bundleCount . 'x promo ' . $rule['qty'] . ' ' . $item['unit_small'] . ' = ' . rupiah($rule['price']);
+                                }
+                                $lineTotal += $remainingQty * (float) $item['unit_price'];
+                                $sellingPrice = $newDisplayQty > 0 ? $lineTotal / $newDisplayQty : 0;
+                                $promoLabel = !empty($promoParts) ? implode(' | ', $promoParts) : '';
+                            }
+
+                            $_SESSION['cart'][$index]['qty'] = $stockUsed;
+                            $_SESSION['cart'][$index]['display_qty'] = $newDisplayQty;
+                            $_SESSION['cart'][$index]['selling_price'] = $sellingPrice;
+                            $_SESSION['cart'][$index]['line_total'] = $lineTotal;
+                            $_SESSION['cart'][$index]['line_profit'] = $lineTotal - $lineCost;
+                            $_SESSION['cart'][$index]['promo_label'] = $promoLabel;
+                            $_SESSION['cart'][$index]['stock_display'] = format_stock_breakdown((float)$stockUsed, (string) $item['unit_large'], (string) $item['unit_small'], $smallUnitQty);
+                        }
                     }
                 }
                 $this->redirect('transaksi');
@@ -207,17 +285,13 @@ class Transaksi_controller extends Controller
                     'customer_id' => $paymentType === 'Hutang' ? $customerId : 0,
                     'payment_type' => $paymentType,
                     'vault_id' => $vaultId,
+                    'shift' => max(1, min(2, (int) ($_SESSION['transaction_shift'] ?? 1))),
                     'subtotal' => $subtotal,
                     'total_profit' => $totalProfit,
-                    'total_paid' => match ($paymentType) {
-                        'Hutang', 'Prive' => 0,
-                        'Tunai' => $cashPaid,
-                        default => $subtotal,
-                    },
+                    'total_paid' => $paymentType === 'Hutang' ? 0 : ($paymentType === 'Tunai' ? $cashPaid : $subtotal),
                     'notes' => '',
                     'due_date' => $paymentType === 'Hutang' && $dueDate !== '' ? $dueDate : null,
                     'items' => $_SESSION['cart'],
-                    'shift' => $_SESSION['active_shift'],
                 ]);
 
                 if (in_array($paymentType, ['Tunai', 'QRIS'], true)) {
@@ -227,7 +301,7 @@ class Transaksi_controller extends Controller
                         if ($rowVaultId <= 0) {
                             continue;
                         }
-                        $vaultTotals[$rowVaultId] = ($vaultTotals[$rowVaultId] ?? 0) + (float) ($row['line_profit'] ?? 0);
+                        $vaultTotals[$rowVaultId] = ($vaultTotals[$rowVaultId] ?? 0) + (float) ($row['line_total'] ?? 0);
                     }
 
                     foreach ($vaultTotals as $rowVaultId => $amount) {
@@ -241,6 +315,8 @@ class Transaksi_controller extends Controller
             }
         }
 
+        $subtotal = array_sum(array_column($_SESSION['cart'], 'line_total'));
+
         $this->view('transaksi/index', [
             'title' => 'Pencatatan Transaksi',
             'items' => $barangModel->searchForTransaction($_GET['q'] ?? ''),
@@ -248,11 +324,13 @@ class Transaksi_controller extends Controller
             'customers' => $pelangganModel->all(),
             'vaults' => $keuanganModel->allVaults(),
             'cart' => $_SESSION['cart'],
-            'transactionMode' => $_SESSION['transaction_mode'],
+            'subtotal' => $subtotal,
             'nextInvoiceNo' => $transaksiModel->nextInvoiceNo(),
             'latestSales' => $transaksiModel->latestSales(),
-            'activeShift' => $_SESSION['active_shift'],
+            'transactionMode' => $_SESSION['transaction_mode'],
+            'currentShift' => (int) ($_SESSION['transaction_shift'] ?? 1),
             'flash' => flash(),
+            'modeLabel' => $_SESSION['transaction_mode'] === 'esaldo' ? 'E-Transaction' : 'Transaksi Biasa',
         ]);
     }
 
@@ -278,20 +356,18 @@ class Transaksi_controller extends Controller
     public function detail(): void
     {
         $transaksiModel = $this->model('Transaksi_model');
-        $id = (int) ($_GET['id'] ?? 0);
-        $sale = $transaksiModel->findSale($id);
+        $saleId = (int) ($_GET['id'] ?? 0);
+        $sale = $saleId > 0 ? $transaksiModel->findSale($saleId) : false;
 
         if (!$sale) {
-            flash('Transaksi tidak ditemukan.', 'warning');
+            flash('Detail transaksi tidak ditemukan.', 'warning');
             $this->redirect('transaksi/list');
         }
 
-        $items = $transaksiModel->saleItems($id);
-
         $this->view('transaksi/detail', [
-            'title' => 'Detail Transaksi ' . $sale['invoice_no'],
+            'title' => 'Detail Transaksi',
             'sale' => $sale,
-            'items' => $items,
+            'items' => $transaksiModel->saleItems($saleId),
             'flash' => flash(),
         ]);
     }

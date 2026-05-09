@@ -78,7 +78,8 @@ CREATE TABLE IF NOT EXISTS sales (
     total_paid REAL NOT NULL DEFAULT 0,
     notes TEXT,
     transaction_date TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    shift INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS sale_items (

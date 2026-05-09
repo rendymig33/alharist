@@ -190,6 +190,33 @@ class Keuangan_controller extends Controller
                 exit;
             }
 
+            if ($action === 'delete_vault') {
+                $vaultId = (int) post('vault_id', 0);
+                $deleted = $model->deleteVault($vaultId);
+
+                if ($isAjax) {
+                    $allVaults = $model->allVaults();
+                    $filteredVaults = $model->allVaults($keyword);
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => $deleted,
+                        'message' => $deleted ? 'Brankas berhasil dihapus.' : 'Brankas tidak ditemukan atau gagal dihapus.',
+                        'vault_id' => $vaultId,
+                        'total_balance' => array_sum(array_map(fn(array $v): float => (float) ($v['balance'] ?? 0), $allVaults)),
+                        'filtered_balance' => array_sum(array_map(fn(array $v): float => (float) ($v['balance'] ?? 0), $filteredVaults)),
+                    ], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+
+                flash($deleted ? 'Brankas berhasil dihapus.' : 'Brankas tidak ditemukan atau gagal dihapus.', $deleted ? 'success' : 'warning');
+                $query = ['route' => 'keuangan/brankas', 'p' => $currentPage];
+                if ($keyword !== '') {
+                    $query['q'] = $keyword;
+                }
+                header('Location: index.php?' . http_build_query($query));
+                exit;
+            }
+
             $model->saveVault([
                 'id' => post('id'),
                 'bank_name' => post('bank_name'),
@@ -223,6 +250,7 @@ class Keuangan_controller extends Controller
         $this->view('keuangan/brankas', [
             'title' => 'Brankas',
             'vaults' => $vaults,
+            'allVaults' => $model->allVaults(),
             'totalItems' => $totalItems,
             'totalPages' => $totalPages,
             'currentPage' => $currentPage,

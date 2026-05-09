@@ -126,6 +126,36 @@ class Keuangan_model extends Model
         $statement->execute($params);
     }
 
+    public function deleteVault(int $id): bool
+    {
+        if ($id <= 0 || !$this->findVault($id)) {
+            return false;
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            $this->db->prepare('DELETE FROM vault_pecahan WHERE vault_id = :id')->execute(['id' => $id]);
+            $this->db->prepare('DELETE FROM vault_transactions WHERE source_vault_id = :id OR target_vault_id = :id')->execute(['id' => $id]);
+            $this->db->prepare('UPDATE sales SET vault_id = NULL WHERE vault_id = :id')->execute(['id' => $id]);
+            $this->db->prepare('UPDATE sale_items SET vault_id = NULL WHERE vault_id = :id')->execute(['id' => $id]);
+            $this->db->prepare('UPDATE debt_payments SET vault_id = NULL WHERE vault_id = :id')->execute(['id' => $id]);
+            $this->db->prepare('UPDATE service_transactions SET vault_id = NULL WHERE vault_id = :id')->execute(['id' => $id]);
+
+            $statement = $this->db->prepare('DELETE FROM vaults WHERE id = :id');
+            $statement->execute(['id' => $id]);
+            $deleted = $statement->rowCount() > 0;
+
+            $this->db->commit();
+            return $deleted;
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            return false;
+        }
+    }
+
     public function updateVaultBalance(int $vaultId, float $amount): void
     {
         $statement = $this->db->prepare("UPDATE vaults SET balance = balance + :amount WHERE id = :id");

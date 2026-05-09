@@ -116,7 +116,7 @@ class Stok_model extends Model
         $itemId = (int) ($data['item_id'] ?? 0);
         $qtyLarge = max(0, (int) ($data['qty_large'] ?? 0));
         $qtySmall = max(0, (int) ($data['qty_small'] ?? 0));
-        $purchasePrice = max(0, (float) ($data['purchase_price'] ?? 0));
+        $purchasePriceInput = max(0, (float) ($data['purchase_price'] ?? 0));
         $notes = trim((string) ($data['notes'] ?? ''));
 
         $itemStatement = $this->db->prepare("SELECT * FROM items WHERE id = :id");
@@ -134,7 +134,9 @@ class Stok_model extends Model
         }
 
         $effectiveLargeQty = $qtyTotal / $smallUnitQty;
-        $purchaseTotal = $purchasePrice * $effectiveLargeQty;
+        // purchase_price input is now the GRAND TOTAL from UI
+        $purchaseTotal = $purchasePriceInput;
+        $unitPurchasePrice = $effectiveLargeQty > 0 ? ($purchaseTotal / $effectiveLargeQty) : 0;
 
         $this->db->beginTransaction();
 
@@ -148,9 +150,9 @@ class Stok_model extends Model
         ");
         $updateItem->execute([
             'qty_total' => $qtyTotal,
-            'purchase_price' => $purchasePrice,
+            'purchase_price' => $unitPurchasePrice,
             'purchase_total' => $purchaseTotal,
-            'purchase_basis_qty' => $qtyLarge,
+            'purchase_basis_qty' => $qtyTotal,
             'id' => $itemId,
         ]);
 
@@ -166,7 +168,7 @@ class Stok_model extends Model
             'qty_large' => $qtyLarge,
             'qty_small' => $qtySmall,
             'qty_total' => $qtyTotal,
-            'purchase_price' => $purchasePrice,
+            'purchase_price' => $unitPurchasePrice,
             'purchase_total' => $purchaseTotal,
             'notes' => $notes,
             'transaction_date' => date('Y-m-d'),
@@ -224,7 +226,7 @@ class Stok_model extends Model
             'stock' => $newStock,
             'purchase_price' => $latestReceive ? (float) ($latestReceive['purchase_price'] ?? 0) : 0,
             'purchase_total' => $latestReceive ? (float) ($latestReceive['purchase_total'] ?? 0) : 0,
-            'purchase_basis_qty' => $latestReceive ? (int) ($latestReceive['qty_large'] ?? 0) : 0,
+            'purchase_basis_qty' => $latestReceive ? (int) ($latestReceive['qty_total'] ?? 0) : 0,
             'id' => $itemId,
         ]);
 

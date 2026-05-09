@@ -66,11 +66,43 @@
     }
 
     .vault-card {
+        position: relative;
         background: linear-gradient(135deg, #ffffff, #fffaf0);
         border: 1px solid var(--line);
         border-radius: 18px;
-        padding: 16px;
+        padding: 16px 16px 16px;
         box-shadow: 0 12px 24px rgba(28, 39, 60, .05);
+    }
+
+    .vault-drop-form {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 2;
+        width: auto;
+    }
+
+    .vault-drop-btn {
+        width: 34px;
+        min-width: 34px;
+        height: 34px;
+        min-height: 34px;
+        padding: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #d71920;
+        border: none;
+        box-shadow: none;
+        font-size: 28px;
+        font-weight: 500;
+        line-height: 1;
+    }
+
+    .vault-drop-btn:hover {
+        background: #fff1f1;
+        color: #b42318;
+        box-shadow: none;
+        transform: none;
     }
 
     .vault-card-head {
@@ -270,7 +302,12 @@ $totalPages = $totalPages ?? 1;
     </form>
     <div class="vault-card-grid">
         <?php foreach ($vaults as $vault): ?>
-            <div class="vault-card">
+            <div class="vault-card" id="vault-card-<?= (int) $vault['id'] ?>">
+                <form method="post" class="vault-drop-form">
+                    <input type="hidden" name="action" value="delete_vault">
+                    <input type="hidden" name="vault_id" value="<?= (int) $vault['id'] ?>">
+                    <button type="button" class="vault-drop-btn delete-vault-btn" data-vault-id="<?= (int) $vault['id'] ?>" data-vault-name="<?= htmlspecialchars((string) $vault['bank_name']) ?>" title="Hapus brankas" aria-label="Hapus brankas">&times;</button>
+                </form>
                 <div class="vault-card-head">
                     <div>
                         <div class="section-title" style="margin-bottom:6px;"><?= htmlspecialchars((string) $vault['bank_name']) ?></div>
@@ -392,7 +429,7 @@ $totalPages = $totalPages ?? 1;
                     <div id="target-vault-group-<?= (int) $vault['id'] ?>" style="display:none;">
                         <div class="small">Ke Brankas (Tujuan Switching)</div>
                         <select name="target_vault_id" class="form-control">
-                            <?php foreach ($vaults as $targetVault): ?>
+                            <?php foreach (($allVaults ?? $vaults) as $targetVault): ?>
                                 <?php if ((int)$targetVault['id'] !== (int)$vault['id']): ?>
                                     <option value="<?= (int) $targetVault['id'] ?>"><?= htmlspecialchars((string) $targetVault['bank_name']) ?></option>
                                 <?php endif; ?>
@@ -573,6 +610,49 @@ $totalPages = $totalPages ?? 1;
             if (filteredBalanceEl && result.filtered_balance !== undefined) {
                 filteredBalanceEl.textContent = formatRupiah(result.filtered_balance);
             }
+        }
+
+        function setupVaultDeleteHandlers() {
+            document.querySelectorAll('.delete-vault-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const vaultId = button.dataset.vaultId;
+                    const vaultName = button.dataset.vaultName || 'brankas ini';
+
+                    askConfirmation('Hapus brankas "' + vaultName + '" yang aktif?', async function() {
+                        const form = button.closest('form');
+                        const card = document.getElementById('vault-card-' + vaultId);
+                        const originalText = button.innerHTML;
+                        button.disabled = true;
+                        button.innerHTML = '&hellip;';
+
+                        try {
+                            const formData = new FormData(form);
+                            const response = await fetch('index.php?route=keuangan/brankas', {
+                                method: 'POST',
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                                body: formData
+                            });
+                            const result = await response.json();
+
+                            if (result.success) {
+                                if (card) {
+                                    card.remove();
+                                }
+                                applyVaultRefresh(result);
+                                showSuccessModal(result.message || 'Brankas berhasil dihapus.');
+                            } else {
+                                showToast(result.message || 'Brankas gagal dihapus.', 'warning');
+                                button.disabled = false;
+                                button.innerHTML = originalText;
+                            }
+                        } catch (error) {
+                            showToast('Terjadi kesalahan saat menghapus brankas.', 'warning');
+                            button.disabled = false;
+                            button.innerHTML = originalText;
+                        }
+                    }, 'Hapus Brankas', 'Ya, Hapus', 'btn-danger');
+                });
+            });
         }
 
         // Global function to update vault summary (both card and modal)
@@ -850,6 +930,7 @@ $totalPages = $totalPages ?? 1;
         }
 
         setupDeleteHandlers();
+        setupVaultDeleteHandlers();
 
         document.querySelectorAll('.transaction-type-select').forEach(function(transactionType) {
             const vaultId = transactionType.dataset.vaultId;

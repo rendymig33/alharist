@@ -17,11 +17,12 @@ class Stok_controller extends Controller
                 $saved = $stokModel->deleteReceive((int) post('receive_id'));
                 flash($saved ? 'History receive berhasil dihapus.' : 'History receive tidak bisa dihapus.', $saved ? 'success' : 'warning');
             } else {
+                // Now simply pass the values; the model handles total -> unit price calculation
                 $saved = $stokModel->receiveItem([
                     'item_id' => $selectedItemId,
                     'qty_large' => (int) post('qty_large', 0),
                     'qty_small' => (int) post('qty_small', 0),
-                    'purchase_price' => unformat_number((string) post('purchase_price')),
+                    'purchase_price' => unformat_number((string) post('purchase_price')), // Treated as TOTAL in model
                     'notes' => post('notes'),
                 ]);
 

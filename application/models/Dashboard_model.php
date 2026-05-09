@@ -21,14 +21,16 @@ class Dashboard_model extends Model
         return "
             SELECT COALESCE(SUM(
                 sale_items.line_total - (
-                    sale_items.qty * (
-                        CASE
-                            WHEN COALESCE(items.category, '') = 'E-SALDO' THEN COALESCE(sale_items.purchase_price, 0)
-                            WHEN COALESCE(items.small_unit_qty, 0) > 0 THEN COALESCE(items.purchase_price, 0) / items.small_unit_qty
-                            WHEN COALESCE(items.purchase_price, 0) > 0 THEN COALESCE(items.purchase_price, 0)
-                            ELSE COALESCE(sale_items.purchase_price, 0)
-                        END
-                    )
+                    CASE
+                        WHEN COALESCE(items.category, '') = 'E-SALDO' THEN sale_items.qty * COALESCE(sale_items.purchase_price, 0)
+                        ELSE sale_items.qty * (
+                            CASE
+                                WHEN COALESCE(items.small_unit_qty, 0) > 0 THEN COALESCE(items.purchase_price, 0) / items.small_unit_qty
+                                WHEN COALESCE(items.purchase_price, 0) > 0 THEN COALESCE(items.purchase_price, 0)
+                                ELSE COALESCE(sale_items.purchase_price, 0)
+                            END
+                        )
+                    END
                 )
             ), 0)
             FROM sale_items
@@ -109,14 +111,16 @@ class Dashboard_model extends Model
         $profitExpr = "
             SUM(
                 sale_items.line_total - (
-                    sale_items.qty * (
-                        CASE
-                            WHEN COALESCE(items.category, '') = 'E-SALDO' THEN COALESCE(sale_items.purchase_price, 0)
-                            WHEN COALESCE(items.small_unit_qty, 0) > 0 THEN COALESCE(items.purchase_price, 0) / items.small_unit_qty
-                            WHEN COALESCE(items.purchase_price, 0) > 0 THEN COALESCE(items.purchase_price, 0)
-                            ELSE COALESCE(sale_items.purchase_price, 0)
-                        END
-                    )
+                    CASE
+                        WHEN COALESCE(items.category, '') = 'E-SALDO' THEN sale_items.qty * COALESCE(sale_items.purchase_price, 0)
+                        ELSE sale_items.qty * (
+                            CASE
+                                WHEN COALESCE(items.small_unit_qty, 0) > 0 THEN COALESCE(items.purchase_price, 0) / items.small_unit_qty
+                                WHEN COALESCE(items.purchase_price, 0) > 0 THEN COALESCE(items.purchase_price, 0)
+                                ELSE COALESCE(sale_items.purchase_price, 0)
+                            END
+                        )
+                    END
                 )
             )
         ";

@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS sales (
     notes TEXT NULL,
     transaction_date DATE NOT NULL,
     created_at DATETIME NOT NULL,
+    shift INT NOT NULL DEFAULT 1,
     PRIMARY KEY (id),
     UNIQUE KEY uq_sales_invoice_no (invoice_no),
     KEY idx_sales_transaction_date (transaction_date)

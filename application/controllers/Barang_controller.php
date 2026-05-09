@@ -29,7 +29,7 @@ class Barang_controller extends Controller
             $updatePurchase = post('update_purchase', empty($existingRaw) ? '1' : '0');
             $purchaseInput = $purchaseReceiptTotal;
             $purchaseTotal = $purchaseReceiptTotal * $purchaseLargeQty;
-            $purchaseBasisQty = $purchaseLargeQty;
+            $purchaseBasisQty = $purchaseLargeQty * $smallUnitQty;
             $unitLarge = trim((string) post('unit_large'));
             $unitSmall = trim((string) post('unit_small'));
 

@@ -3,348 +3,373 @@ $currentPage = $currentPage ?? 1;
 $totalPages = $totalPages ?? 1;
 ?>
 <style>
-    .stok-grid {
+    .receive-layout {
         display: grid;
-        grid-template-columns: .95fr 1.05fr;
-        gap: 18px;
-        margin-top: 18px;
+        grid-template-columns: 1fr 380px;
+        gap: 24px;
+        margin-top: 20px;
     }
 
-    .stok-search {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 12px;
-        align-items: end;
-        margin-bottom: 16px;
+    .receive-main {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
     }
 
-    .stok-list-wrap {
-        overflow-x: auto;
+    .receive-card {
+        background: #fff;
+        border-radius: 20px;
+        border: 1px solid #eaecf0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        overflow: hidden;
     }
 
-    .stok-item-table {
-        width: 100%;
-    }
-
-    .stok-item-table tr.is-low-stock {
-        background: #fff1f1;
-    }
-
-    .stok-item-table tr.is-low-stock td {
-        color: #7e0b03;
-    }
-
-    .stok-item-table tr.is-selected {
-        background: #bee8fc;
-    }
-
-    .stok-pick-btn {
-        min-width: 84px;
-        padding: 8px 12px;
-    }
-
-    .stok-summary {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-        margin-bottom: 14px;
-    }
-
-    .stok-summary .detail-box {
-        padding: 12px 14px;
-    }
-
-    .receive-highlight {
-        background: linear-gradient(180deg, #fff7e3 0%, #fffdf8 100%);
-        border: 1px solid #f4d27a;
-        border-radius: 16px;
-        padding: 14px 16px;
-        margin-top: 14px;
-    }
-
-    .receive-history-list {
-        display: grid;
-        gap: 10px;
-        margin-top: 16px;
-    }
-
-    .receive-history-item {
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 12px 14px;
+    .receive-card-head {
+        padding: 16px 20px;
         background: #fcfcfd;
-    }
-
-    .receive-history-head {
+        border-bottom: 1px solid #eaecf0;
         display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: flex-start;
-    }
-
-    .receive-history-actions {
-        display: flex;
-        gap: 8px;
         align-items: center;
-        flex-wrap: wrap;
+        justify-content: space-between;
     }
 
-    .receive-delete-form {
-        margin: 0;
+    .receive-card-body {
+        padding: 24px;
     }
 
-    .receive-delete-btn {
-        padding: 8px 12px;
-        min-width: 84px;
+    .receive-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
     }
 
-    @media (max-width: 920px) {
+    .info-stat {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
 
-        .stok-grid,
-        .stok-search,
-        .stok-summary {
+    .info-stat.highlight {
+        background: #f0f9ff;
+        border-color: #bae6fd;
+    }
+
+    .info-stat .label {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+    }
+
+    .info-stat .value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .receive-form-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        padding: 24px;
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #eaecf0;
+    }
+
+    .input-box {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .input-box label {
+        font-weight: 700;
+        font-size: 13px;
+        color: #344054;
+    }
+
+    .input-with-icon {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-with-icon .icon {
+        position: absolute;
+        left: 14px;
+        font-size: 18px;
+        color: #98a2b3;
+    }
+
+    .input-with-icon input {
+        padding-left: 44px !important;
+        height: 52px;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .receive-summary-bar {
+        background: #101828;
+        border-radius: 16px;
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #fff;
+        margin-top: 24px;
+    }
+
+    .summary-item .label {
+        font-size: 11px;
+        color: #98a2b3;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .summary-item .value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .summary-item .value-large {
+        font-size: 28px;
+        font-weight: 800;
+        color: #3b82f6;
+    }
+
+    .item-search-wrap {
+        position: sticky;
+        top: 20px;
+    }
+
+    .mini-item-card {
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid #eaecf0;
+        margin-bottom: 10px;
+        transition: all 0.2s;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #fff;
+    }
+
+    .mini-item-card:hover {
+        border-color: #3b82f6;
+        background: #f0f9ff;
+    }
+
+    .mini-item-card.active {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+
+    .mini-item-card .item-icon {
+        width: 40px;
+        height: 40px;
+        background: #f2f4f7;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    .mini-item-card.active .item-icon {
+        background: #3b82f6;
+        color: #fff;
+    }
+
+    .history-strip {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: #f9fafb;
+        border: 1px solid #eaecf0;
+        margin-bottom: 8px;
+        font-size: 13px;
+    }
+
+    @media (max-width: 1100px) {
+        .receive-layout {
             grid-template-columns: 1fr;
         }
-    }
-
-    @media (max-width: 640px) {
-        .stok-item-table thead {
-            display: none;
-        }
-
-        .stok-item-table,
-        .stok-item-table tbody,
-        .stok-item-table tr,
-        .stok-item-table td {
-            display: block;
-            width: 100%;
-        }
-
-        .stok-item-table tr {
-            padding: 12px 0;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .stok-item-table td {
-            border-bottom: none;
-            padding: 8px 0;
-        }
-
-        .stok-item-table td::before {
-            content: attr(data-label);
-            display: block;
-            margin-bottom: 4px;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: .05em;
-            text-transform: uppercase;
-            color: #98a2b3;
-        }
-
-        .stok-pick-btn {
-            width: 100%;
+        .item-search-wrap {
+            position: static;
         }
     }
-
-    .pagination-wrap {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 1px solid var(--line);
-    }
-
-    .pagination-info {
-        font-size: 13px;
-        font-weight: 700;
-        color: #667085;
-        background: #f9fafb;
-        padding: 6px 12px;
-        border-radius: 999px;
-        border: 1px solid var(--line);
-    }
-
-    .pagination-btns {
-        display: flex;
-        gap: 8px;
-    }
-
-    .btn-pagination {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.2s;
-    }
-
-    .btn-pagination:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-
-
 </style>
 
-<div class="stok-grid">
-    <div class="card">
-        <h3>Receive Item</h3>
-        <div class="small" style="margin-bottom:12px;">Pilih barang dari daftar sebelah kanan, lalu isi pembelian baru di sini. Harga beli aktif akan mengikuti pembelian terakhir yang Anda simpan.</div>
-
+<div class="receive-layout">
+    <div class="receive-main">
         <?php if (!empty($selectedItem)): ?>
             <?php
             $selectedSmallQty = max(1, (int) ($selectedItem['small_unit_qty'] ?? 1));
             $selectedStockDisplay = format_stock_breakdown((int) ($selectedItem['stock'] ?? 0), (string) ($selectedItem['unit_large'] ?? 'Bungkus'), (string) ($selectedItem['unit_small'] ?? 'Pcs'), $selectedSmallQty);
             ?>
-            <div class="stok-summary">
-                <div class="detail-box">
-                    <div class="small">Barang Dipilih</div>
-                    <strong><?= htmlspecialchars((string) ($selectedItem['name'] ?? '-')) ?></strong>
-                    <div class="small" style="margin-top:4px;"><?= htmlspecialchars((string) ($selectedItem['code'] ?? '-')) ?></div>
+            
+            <div class="receive-card">
+                <div class="receive-card-head">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="font-size:24px;">📦</span>
+                        <div>
+                            <h3 style="margin:0;">Input Pembelian Baru</h3>
+                            <div class="small" style="color:#667085;">Silakan masukkan detail struk pembelian barang.</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="toggleHistoryModal(true)">Lihat History</button>
                 </div>
-                <div class="detail-box">
-                    <div class="small">Stok Saat Ini</div>
-                    <strong><?= htmlspecialchars($selectedStockDisplay) ?></strong>
-                    <div class="small" style="margin-top:4px;">Harga beli aktif: <?= rupiah((float) ($selectedItem['purchase_price'] ?? 0)) ?></div>
+                
+                <div class="receive-card-body">
+                    <div class="receive-info-grid">
+                        <div class="info-stat">
+                            <span class="label">Barang Terpilih</span>
+                            <span class="value"><?= htmlspecialchars((string) ($selectedItem['name'] ?? '-')) ?></span>
+                            <div class="small" style="margin-top:2px; color:#64748b;"><?= htmlspecialchars((string) ($selectedItem['code'] ?? '-')) ?></div>
+                        </div>
+                        <div class="info-stat">
+                            <span class="label">Stok Saat Ini</span>
+                            <span class="value"><?= htmlspecialchars($selectedStockDisplay) ?></span>
+                        </div>
+                        <div class="info-stat highlight">
+                            <span class="label">Harga Beli Terakhir</span>
+                            <span class="value"><?= rupiah((float) ($selectedItem['purchase_price'] ?? 0)) ?></span>
+                            <div class="small" style="color:#0369a1;">per <?= htmlspecialchars((string) ($selectedItem['unit_large'] ?? 'Unit')) ?></div>
+                        </div>
+                    </div>
+
+                    <form method="post" id="receive-form">
+                        <input type="hidden" name="item_id" value="<?= (int) $selectedItem['id'] ?>">
+                        <div class="receive-form-group">
+                            <div class="input-box">
+                                <label>Jumlah Masuk (<?= htmlspecialchars((string) ($selectedItem['unit_large'] ?? 'Besar')) ?>)</label>
+                                <div class="input-with-icon">
+                                    <span class="icon">📦</span>
+                                    <input type="number" name="qty_large" id="input_qty_large" min="0" value="0" required inputmode="numeric" autofocus oninput="updateSummary()">
+                                </div>
+                            </div>
+                            <div class="input-box">
+                                <label>Bonus/Ecer (<?= htmlspecialchars((string) ($selectedItem['unit_small'] ?? 'Kecil')) ?>)</label>
+                                <div class="input-with-icon">
+                                    <span class="icon">🍬</span>
+                                    <input type="number" name="qty_small" id="input_qty_small" min="0" value="0" required inputmode="numeric" oninput="updateSummary()">
+                                </div>
+                            </div>
+                            <div class="input-box">
+                                <label>Total Harga di Nota (Untuk Semua Qty)</label>
+                                <div class="input-with-icon">
+                                    <span class="icon">💰</span>
+                                    <input type="text" class="money-input" name="purchase_price" id="input_purchase_price" placeholder="Ketik total harga nota..." required inputmode="numeric" oninput="updateSummary()">
+                                </div>
+                                <div class="small" style="color:#667085; font-style:italic;">* Masukkan total bayar untuk barang ini di nota.</div>
+                            </div>
+                            <div class="input-box">
+                                <label>Harga Modal Satuan Kecil (Otomatis)</label>
+                                <div class="input-with-icon">
+                                    <span class="icon">🏷️</span>
+                                    <input type="text" id="display_modal_ecer" placeholder="Otomatis..." readonly style="background:#f8fafc; border-color:#e2e8f0; color:#475569;">
+                                </div>
+                                <div class="small" style="color:#64748b;">Harga modal per 1 <?= htmlspecialchars((string) ($selectedItem['unit_small'] ?? 'Pcs')) ?>.</div>
+                            </div>
+                        </div>
+
+                        <div class="receive-summary-bar" id="summary-bar">
+                            <div class="summary-item">
+                                <div class="label">Analisa Harga Satuan</div>
+                                <div class="value" id="summary_unit_price">Rp 0</div>
+                                <div class="small" style="color:#94a3b8; margin-top:4px;" id="summary_modal_ecer_text">Modal Ecer: Rp 0</div>
+                            </div>
+                            <div style="width:1px; height:48px; background:rgba(255,255,255,0.1);"></div>
+                            <div class="summary-item" style="text-align:right;">
+                                <div class="label">Total Yang Dibayar</div>
+                                <div class="value-large" id="summary_total_price">Rp 0</div>
+                                <div class="small" style="color:#94a3b8; margin-top:4px;" id="summary_total_volume">0 volume</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:24px; display:flex; gap:12px;">
+                            <button type="submit" class="btn btn-primary" style="flex:1; height:60px; font-size:20px; border-radius:16px; box-shadow:0 12px 20px -5px rgba(59, 130, 246, 0.3);">Konfirmasi & Simpan</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
-            <form method="post">
-                <input type="hidden" name="item_id" value="<?= (int) $selectedItem['id'] ?>">
-                <div class="form-grid">
-                    <div>
-                        <div class="small">Qty Besar Masuk</div>
-                        <input type="number" name="qty_large" min="0" value="0" required inputmode="numeric">
-                    </div>
-                    <div>
-                        <div class="small">Qty Sisa Kecil</div>
-                        <input type="number" name="qty_small" min="0" value="0" required inputmode="numeric">
-                    </div>
-                    <div>
-                        <div class="small">Harga Beli di Struk</div>
-                        <input type="text" class="money-input" name="purchase_price" placeholder="Harga beli per satuan besar" required inputmode="numeric">
-                        <div class="small" style="margin-top:4px;">Harga beli Struk: <?= rupiah((float) ($selectedItem['purchase_price'] ?? 0)) ?></div>
-                    </div>
-                    <div>
-                        <div class="small">Catatan</div>
-                        <input type="text" name="notes" placeholder="Catatan pembelian untuk <?= htmlspecialchars((string) ($selectedItem['name'] ?? 'barang')) ?>">
-                    </div>
-                </div>
-                <div class="receive-highlight">
-                    <div class="small" style="margin-bottom:6px;">Ringkasan Receive</div>
-                    <strong>Stok akan bertambah dari pembelian baru ini.</strong>
-                    <div class="small" style="margin-top:6px;">Gunakan form ini hanya untuk barang masuk/pembelian baru. Koreksi selisih stok tetap dilakukan dari modul Stok Opname.</div>
-                </div>
-                <div style="margin-top:12px;">
-                    <button type="submit">Simpan Receive Item</button>
-                </div>
-            </form>
-
-            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px dashed var(--line); display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div class="section-title" style="margin: 0;">History Receive</div>
-                    <div class="small">Klik tombol samping untuk melihat riwayat lengkap.</div>
-                </div>
-                <button type="button" class="btn btn-secondary" onclick="toggleHistoryModal(true)">Lihat History</button>
-            </div>
         <?php else: ?>
-            <div class="info-strip">
-                <div class="small">Belum ada barang yang dipilih. Pilih dulu dari daftar barang di sebelah kanan.</div>
+            <div class="receive-card" style="text-align:center; padding:60px 20px;">
+                <span style="font-size:60px; display:block; margin-bottom:20px;">🔍</span>
+                <h3>Belum Ada Barang Dipilih</h3>
+                <p style="color:#667085;">Silakan pilih barang dari daftar di samping kanan atau cari melalui barcode.</p>
             </div>
         <?php endif; ?>
     </div>
 
-    <div class="card">
-        <h3>Daftar Barang</h3>
-        <form method="get" class="stok-search">
-            <input type="hidden" name="route" value="stok/receive">
-            <div>
-                <div class="small">Cari Barang</div>
-                <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari kode, barcode, atau nama barang">
+    <div class="item-search-wrap">
+        <div class="receive-card">
+            <div class="receive-card-head">
+                <h4 style="margin:0;">Cari & Pilih Barang</h4>
             </div>
-            <div class="search-reset-actions">
-                <button type="submit" class="btn btn-secondary">Search</button>
-                <a href="index.php?route=stok/receive" class="btn btn-info">Reset</a>
-            </div>
-        </form>
+            <div class="receive-card-body" style="padding:16px;">
+                <form method="get" style="margin-bottom:20px;">
+                    <input type="hidden" name="route" value="stok/receive">
+                    <div class="input-with-icon">
+                        <span class="icon">🔍</span>
+                        <input type="text" name="q" value="<?= htmlspecialchars((string) ($keyword ?? '')) ?>" placeholder="Cari nama / barcode..." style="height:44px; border-radius:10px;">
+                    </div>
+                </form>
 
-        <div class="stok-list-wrap">
-            <table class="stok-item-table">
-                <thead>
-                    <tr>
-                        <th>Kode</th>
-                        <th>Barang</th>
-                        <th>Stok</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
+                <div style="display:flex; flex-direction:column; gap:8px;">
                     <?php foreach (($items ?? []) as $item): ?>
                         <?php
                         $isLowStock = !empty($item['low_stock']);
                         $isSelected = (int) ($selectedItem['id'] ?? 0) === (int) ($item['id'] ?? 0);
                         $pickQuery = ['route' => 'stok/receive', 'item' => (int) $item['id'], 'p' => $currentPage];
-                        if (!empty($keyword)) {
-                            $pickQuery['q'] = $keyword;
-                        }
+                        if (!empty($keyword)) $pickQuery['q'] = $keyword;
                         ?>
-                        <tr class="<?= $isLowStock ? 'is-low-stock' : '' ?> <?= $isSelected ? 'is-selected' : '' ?>">
-                            <td data-label="Kode">
-                                <strong><?= htmlspecialchars((string) ($item['code'] ?? '-')) ?></strong>
-                                <div class="small"><?= htmlspecialchars((string) (($item['barcode'] ?? '') !== '' ? $item['barcode'] : '-')) ?></div>
-                            </td>
-                            <td data-label="Barang">
-                                <strong><?= htmlspecialchars((string) ($item['name'] ?? '-')) ?></strong>
-                                <div class="small">1 <?= htmlspecialchars((string) ($item['unit_large'] ?? 'Bungkus')) ?> = <?= (int) ($item['small_unit_qty'] ?? 1) ?> <?= htmlspecialchars((string) ($item['unit_small'] ?? 'Pcs')) ?></div>
-                            </td>
-                            <td data-label="Stok">
-                                <strong><?= htmlspecialchars((string) ($item['stock_display'] ?? '0')) ?></strong>
-                                <?php if ($isLowStock): ?>
-                                    <div class="small" style="color:#b42318; font-weight:700; margin-top:4px;"><?= htmlspecialchars((string) ($item['low_stock_note'] ?? 'Stok kurang dari 3')) ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td data-label="Aksi">
-                                <a class="btn btn-secondary stok-pick-btn" href="index.php?<?= http_build_query($pickQuery) ?>">Pilih</a>
-                            </td>
-                        </tr>
+                        <div class="mini-item-card <?= $isSelected ? 'active' : '' ?>" onclick="window.location.href='index.php?<?= http_build_query($pickQuery) ?>'">
+                            <div class="item-icon"><?= $isLowStock ? '⚠️' : '📦' ?></div>
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-weight:700; color:#101828; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?= htmlspecialchars((string) ($item['name'] ?? '-')) ?></div>
+                                <div class="small" style="color:#667085;">Stok: <?= htmlspecialchars((string) ($item['stock_display'] ?? '0')) ?></div>
+                            </div>
+                            <span style="font-size:12px; color:#98a2b3;">➔</span>
+                        </div>
                     <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <?php if ($totalPages > 1): ?>
-            <div class="pagination-wrap">
-                <div class="pagination-info">
-                    Halaman <?= $currentPage ?> dari <?= $totalPages ?>
                 </div>
-                <div class="pagination-btns">
-                    <?php
-                    $prevQuery = ['route' => 'stok/receive', 'p' => $currentPage - 1];
-                    if (!empty($keyword)) $prevQuery['q'] = $keyword;
-                    if (!empty($selectedItem['id'])) $prevQuery['item'] = $selectedItem['id'];
 
-                    $nextQuery = ['route' => 'stok/receive', 'p' => $currentPage + 1];
-                    if (!empty($keyword)) $nextQuery['q'] = $keyword;
-                    if (!empty($selectedItem['id'])) $nextQuery['item'] = $selectedItem['id'];
-                    ?>
-
-                    <?php if ($currentPage > 1): ?>
-                        <a href="index.php?<?= http_build_query($prevQuery) ?>" class="btn btn-secondary btn-pagination">
-                            Prev
-                        </a>
-                    <?php endif; ?>
-
-                    <?php if ($currentPage < $totalPages): ?>
-                        <a href="index.php?<?= http_build_query($nextQuery) ?>" class="btn btn-secondary btn-pagination">
-                            Next
-                        </a>
-                    <?php endif; ?>
-                </div>
+                <?php if ($totalPages > 1): ?>
+                    <div style="margin-top:16px; display:flex; justify-content:center; gap:10px;">
+                        <?php
+                        $prevQuery = ['route' => 'stok/receive', 'p' => $currentPage - 1];
+                        if (!empty($keyword)) $prevQuery['q'] = $keyword;
+                        if (!empty($selectedItem['id'])) $prevQuery['item'] = $selectedItem['id'];
+                        $nextQuery = ['route' => 'stok/receive', 'p' => $currentPage + 1];
+                        if (!empty($keyword)) $nextQuery['q'] = $keyword;
+                        if (!empty($selectedItem['id'])) $nextQuery['item'] = $selectedItem['id'];
+                        ?>
+                        <?php if ($currentPage > 1): ?>
+                            <a href="index.php?<?= http_build_query($prevQuery) ?>" class="btn btn-secondary" style="padding:6px 12px; font-size:12px;">Prev</a>
+                        <?php endif; ?>
+                        <span class="small" style="align-self:center;"><?= $currentPage ?> / <?= $totalPages ?></span>
+                        <?php if ($currentPage < $totalPages): ?>
+                            <a href="index.php?<?= http_build_query($nextQuery) ?>" class="btn btn-secondary" style="padding:6px 12px; font-size:12px;">Next</a>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
-        <?php endif; ?>
+        </div>
     </div>
 </div>
 
@@ -370,12 +395,7 @@ $totalPages = $totalPages ?? 1;
                             <?php if (!empty($selectedHistory)): ?>
                                 <?php foreach ($selectedHistory as $index => $row): ?>
                                     <?php
-                                    $historySmallQty = max(1, (int) ($row['small_unit_qty'] ?? 1));
-                                    $historyLargeQty = (int) ($row['qty_large'] ?? 0);
-                                    $historySmallRemainder = (int) ($row['qty_small'] ?? 0);
                                     $currentPrice = (float)($row['purchase_price'] ?? 0);
-                                    
-                                    // Price Analysis
                                     $prevPrice = isset($selectedHistory[$index + 1]) ? (float)$selectedHistory[$index + 1]['purchase_price'] : $currentPrice;
                                     $priceDiff = $currentPrice - $prevPrice;
                                     ?>
@@ -383,7 +403,7 @@ $totalPages = $totalPages ?? 1;
                                         <td class="date" data-label="Tanggal"><?= htmlspecialchars((string) ($row['transaction_date'] ?? '-')) ?></td>
                                         <td class="desc" data-label="Keterangan">
                                             <span class="desc-main"><?= htmlspecialchars((string) (($row['notes'] ?? '') !== '' ? $row['notes'] : 'Pembelian Baru')) ?></span>
-                                            <span class="desc-sub">Masuk: <?= $historyLargeQty ?> <?= htmlspecialchars((string) ($row['unit_large'] ?? 'Bungkus')) ?><?= $historySmallRemainder > 0 ? ' ' . $historySmallRemainder . ' ' . htmlspecialchars((string) ($row['unit_small'] ?? 'Pcs')) : '' ?></span>
+                                            <span class="desc-sub">Masuk: <?= (int)$row['qty_large'] ?> <?= htmlspecialchars((string) ($row['unit_large'] ?? '')) ?></span>
                                             <span class="desc-sub">Hrg: <?= number_format($currentPrice, 0, ',', '.') ?> | Total: <?= number_format((float) ($row['purchase_total'] ?? 0), 0, ',', '.') ?></span>
                                         </td>
                                         <td class="amount" data-label="Analisa">
@@ -396,7 +416,7 @@ $totalPages = $totalPages ?? 1;
                                             <?php endif; ?>
                                         </td>
                                         <td style="text-align:right;" data-label="Aksi">
-                                            <form method="post" class="receive-delete-form" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus history receive ini? Stok barang akan dikurangi kembali.', () => f.submit());">
+                                            <form method="post" onsubmit="event.preventDefault(); const f = this; askConfirmation('Hapus history receive ini? Stok barang akan dikurangi kembali.', () => f.submit());">
                                                 <input type="hidden" name="action" value="delete_receive">
                                                 <input type="hidden" name="item_id" value="<?= (int) ($selectedItem['id'] ?? 0) ?>">
                                                 <input type="hidden" name="receive_id" value="<?= (int) ($row['id'] ?? 0) ?>">
@@ -419,14 +439,59 @@ $totalPages = $totalPages ?? 1;
 <?php endif; ?>
 
 <script>
+    function updateSummary() {
+        const qtyLargeInput = document.getElementById('input_qty_large');
+        if (!qtyLargeInput) return;
+
+        const qtyLarge = parseInt(qtyLargeInput.value || '0', 10);
+        const qtySmallInput = document.getElementById('input_qty_small');
+        const qtySmall = qtySmallInput ? parseInt(qtySmallInput.value || '0', 10) : 0;
+        const priceInput = document.getElementById('input_purchase_price');
+        const priceText = priceInput ? priceInput.value : '0';
+        const totalPrice = parseFloat(priceText.replace(/[^\d]/g, '')) || 0;
+        
+        const unitLarge = "<?= htmlspecialchars((string) ($selectedItem['unit_large'] ?? 'Unit')) ?>";
+        const unitSmall = "<?= htmlspecialchars((string) ($selectedItem['unit_small'] ?? 'Pcs')) ?>";
+        const smallPerLarge = <?= (int) ($selectedItem['small_unit_qty'] ?? 1) ?>;
+        
+        const totalVolumeLarge = qtyLarge + (qtySmall / smallPerLarge);
+        const unitPriceLarge = totalVolumeLarge > 0 ? Math.round(totalPrice / totalVolumeLarge) : 0;
+        const modalEcer = smallPerLarge > 0 ? Math.round(unitPriceLarge / smallPerLarge) : 0;
+
+        // Update Modal Ecer Display (Field)
+        const ecerDisplay = document.getElementById('display_modal_ecer');
+        if (ecerDisplay) ecerDisplay.value = modalEcer.toLocaleString('id-ID');
+
+        // Update Summary Bar
+        const summaryUnitPrice = document.getElementById('summary_unit_price');
+        if (summaryUnitPrice) summaryUnitPrice.textContent = 'Rp ' + unitPriceLarge.toLocaleString('id-ID') + ' / ' + unitLarge;
+
+        const summaryModalEcerText = document.getElementById('summary_modal_ecer_text');
+        if (summaryModalEcerText) summaryModalEcerText.textContent = 'Modal Ecer: Rp ' + modalEcer.toLocaleString('id-ID') + ' / ' + unitSmall;
+
+        const summaryTotalPrice = document.getElementById('summary_total_price');
+        if (summaryTotalPrice) summaryTotalPrice.textContent = 'Rp ' + totalPrice.toLocaleString('id-ID');
+
+        const summaryTotalVolume = document.getElementById('summary_total_volume');
+        if (summaryTotalVolume) {
+            let volText = qtyLarge + ' ' + unitLarge;
+            if (qtySmall > 0) volText += ' + ' + qtySmall + ' ' + unitSmall;
+            summaryTotalVolume.textContent = volText;
+        }
+    }
+
     function toggleHistoryModal(show) {
         const modal = document.getElementById('history-modal');
         if (modal) modal.classList.toggle('active', show);
     }
+
     document.querySelectorAll('.money-input').forEach(function(input) {
         input.addEventListener('input', function() {
             const digits = this.value.replace(/[^\d]/g, '');
             this.value = digits === '' ? '' : Number(digits).toLocaleString('id-ID');
         });
     });
+
+    // Run initial summary
+    updateSummary();
 </script>

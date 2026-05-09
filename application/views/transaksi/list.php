@@ -118,7 +118,7 @@ $keyword = $keyword ?? '';
                 </div>
             </div>
 
-            <?php foreach ([1, 2] as $sIdx): ?>
+            <?php foreach (array_keys($shifts) as $sIdx): ?>
                 <?php if (isset($shifts[$sIdx])): ?>
                     <?php
                     $rows = $shifts[$sIdx];
@@ -137,7 +137,7 @@ $keyword = $keyword ?? '';
                                         <tr>
                                             <td class="desc" data-label="Invoice">
                                                 <span class="desc-main"><?= htmlspecialchars((string) $sale['invoice_no']) ?></span>
-                                                <span class="desc-sub"><?= htmlspecialchars((string) $sale['payment_type']) ?></span>
+                                                <span class="desc-sub"><?= htmlspecialchars((string) ($sale['sale_mode'] ?? 'Transaksi Biasa')) ?> | <?= htmlspecialchars((string) $sale['payment_type']) ?></span>
                                             </td>
                                             <td class="amount cr" data-label="Total">
                                                 <?= number_format((float) $sale['subtotal'], 0, ',', '.') ?>
