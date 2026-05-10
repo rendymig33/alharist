@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 class Stok_model extends Model
 {
-    public function itemOptions(string $keyword = ''): array
+    public function getCategories(): array
+    {
+        $statement = $this->db->query("SELECT DISTINCT category FROM items WHERE category != 'E-SALDO' AND category != '' AND category IS NOT NULL ORDER BY category ASC");
+        return $statement->fetchAll(PDO::FETCH_COLUMN) ?: [];
+    }
+
+    public function itemOptions(string $keyword = '', string $category = ''): array
     {
         $keyword = trim($keyword);
         $sql = "SELECT * FROM items WHERE category != 'E-SALDO'";
@@ -13,6 +19,11 @@ class Stok_model extends Model
         if ($keyword !== '') {
             $sql .= " AND (code LIKE :keyword OR barcode LIKE :keyword OR name LIKE :keyword OR category LIKE :keyword)";
             $params['keyword'] = '%' . $keyword . '%';
+        }
+
+        if ($category !== '') {
+            $sql .= " AND category = :category";
+            $params['category'] = $category;
         }
 
         $sql .= " ORDER BY name ASC";

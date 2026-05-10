@@ -1008,7 +1008,7 @@ $modeLabel = $transactionMode === 'esaldo' ? 'E-Transaction' : 'Transaksi Biasa'
             </div>
         </div>
         <div class="payment-pop-alert" id="payment-config-notice">
-            Pop-up konfirmasi pembayaran akan muncul sebelum transaksi disimpan.
+            Konfirmasi Pembayaran : Silahkan Pilih Jenis Metode Pembayaran
         </div>
         <div style="display:flex; justify-content:space-between; gap:12px; margin-top:18px; flex-wrap:wrap;">
             <div class="transaction-inline-badge">Shift <?= $currentShift ?></div>

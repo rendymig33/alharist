@@ -83,6 +83,7 @@ class Stok_controller extends Controller
     {
         $stokModel = $this->model('Stok_model');
         $keyword = trim((string) ($_GET['q'] ?? ''));
+        $category = trim((string) ($_GET['cat'] ?? ''));
         $selectedItemId = isset($_GET['item']) ? (int) $_GET['item'] : 0;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -107,15 +108,27 @@ class Stok_controller extends Controller
             if ($keyword !== '') {
                 $query['q'] = $keyword;
             }
-            if ($selectedItemId > 0) {
+            if ($category !== '') {
+                $query['cat'] = $category;
+            }
+            // Jika action adalah save, kita tidak mengirimkan parameter item agar modal otomatis tertutup
+            if ($action === 'delete_opname' && $selectedItemId > 0) {
                 $query['item'] = $selectedItemId;
             }
+            
+            // Pertahankan halaman pagination saat ini
+            $page = (int)($_POST['p'] ?? 1);
+            if ($page > 1) {
+                $query['p'] = $page;
+            }
+
             header('Location: index.php?' . http_build_query($query));
             exit;
         }
 
-        $all_items = $stokModel->itemOptions($keyword);
-        $limit = 8;
+        $all_items = $stokModel->itemOptions($keyword, $category);
+        $categories = $stokModel->getCategories();
+        $limit = 5;
         $totalItems = count($all_items);
         $totalPages = (int) ceil($totalItems / $limit);
         $currentPage = max(1, min((int) ($_GET['p'] ?? 1), max(1, $totalPages)));
@@ -132,10 +145,6 @@ class Stok_controller extends Controller
             }
         }
 
-        if ($selectedItem === null && !empty($items)) {
-            $selectedItem = $items[0];
-        }
-
         $selectedHistory = !empty($selectedItem['id'])
             ? $stokModel->opnameHistoryByItem((int) $selectedItem['id'])
             : [];
@@ -143,6 +152,8 @@ class Stok_controller extends Controller
         $this->view('stok/opname', [
             'title' => 'Stok Opname',
             'items' => $items,
+            'categories' => $categories,
+            'category' => $category,
             'totalItems' => $totalItems,
             'totalPages' => $totalPages,
             'currentPage' => $currentPage,
@@ -151,5 +162,31 @@ class Stok_controller extends Controller
             'keyword' => $keyword,
             'flash' => flash(),
         ]);
+    }
+
+    public function opname_print(): void
+    {
+        $stokModel = $this->model('Stok_model');
+        $keyword = trim((string) ($_GET['q'] ?? ''));
+        $category = trim((string) ($_GET['cat'] ?? ''));
+
+        // Ambil semua item tanpa limit pagination untuk di-print
+        $items = $stokModel->itemOptions($keyword, $category);
+
+        // Load view khusus print tanpa layout utama
+        require_once __DIR__ . '/../views/stok/opname_print.php';
+    }
+
+    public function opname_print_list(): void
+    {
+        $stokModel = $this->model('Stok_model');
+        $keyword = trim((string) ($_GET['q'] ?? ''));
+        $category = trim((string) ($_GET['cat'] ?? ''));
+
+        // Ambil semua item tanpa limit pagination untuk di-print
+        $items = $stokModel->itemOptions($keyword, $category);
+
+        // Load view khusus print tanpa layout utama
+        require_once __DIR__ . '/../views/stok/opname_print_list.php';
     }
 }

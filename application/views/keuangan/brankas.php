@@ -705,12 +705,21 @@ $totalPages = $totalPages ?? 1;
 
             const selisih = total - saldoAwal;
             const formattedTotal = total.toLocaleString('id-ID');
-            const formattedSelisih = (selisih > 0 ? '+' : '') + selisih.toLocaleString('id-ID');
+            
+            let selisihText = 'Sesuai (0)';
+            let selisihVal = Math.abs(selisih).toLocaleString('id-ID');
+            
+            if (selisih > 0) {
+                selisihText = 'Lebih: ' + selisihVal;
+            } else if (selisih < 0) {
+                selisihText = 'Kurang: ' + selisihVal;
+            }
+            
             const color = selisih > 0 ? '#027a48' : (selisih < 0 ? '#b42318' : '#344054');
 
             if (totalEl) totalEl.textContent = formattedTotal;
             if (selisihEl) {
-                selisihEl.textContent = formattedSelisih;
+                selisihEl.textContent = selisihText;
                 selisihEl.style.color = color;
             }
 
@@ -718,12 +727,12 @@ $totalPages = $totalPages ?? 1;
                 if (pecahanSummaryEl) pecahanSummaryEl.textContent = 'Fisik: Rp ' + formattedTotal;
                 if (modalPecahanEl) modalPecahanEl.textContent = '| Fisik: Rp ' + formattedTotal;
                 if (modalSelisihEl) {
-                    modalSelisihEl.textContent = '(Selisih: ' + formattedSelisih + ')';
+                    modalSelisihEl.textContent = '(' + selisihText + ')';
                     modalSelisihEl.style.color = color;
                 }
                 
                 if (cardSelisihEl) {
-                    cardSelisihEl.textContent = 'Selisih: ' + formattedSelisih;
+                    cardSelisihEl.textContent = selisihText;
                     cardSelisihEl.style.color = color;
                 }
             } else {
