@@ -8,7 +8,7 @@ return [
         'driver' => 'mysql',
         'sqlite_path' => __DIR__ . '/../../storage/kasir.sqlite',
         'host' => '127.0.0.1',
-        'port' => 3306,
+        'port' => 3307,
         'name' => 'alharist',
         'username' => 'root',
         'password' => '',
